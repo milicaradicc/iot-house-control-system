@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+simulation/__pycache__/
+simulation/components/__pycache__/
+simulation/simulators/__pycache__/
