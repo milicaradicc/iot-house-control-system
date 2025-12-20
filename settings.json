@@ -7,5 +7,16 @@
         "simulated" : true,
         "trigger_pin" : 23,
         "echo_pin" : 24
+    },
+    "DMS": {
+        "simulated": true,
+        "r1": 25,
+        "r2": 8,
+        "r3": 7,
+        "r4": 1,
+        "c1": 12,
+        "c2": 16,
+        "c3": 20,
+        "c4": 21
     }
 }

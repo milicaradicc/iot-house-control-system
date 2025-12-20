@@ -2,6 +2,7 @@ import threading
 from settings import load_settings
 from simulation.components.ds import run_door_sensor
 from simulation.components.dus import run_ultrasonic_door_sensor
+from simulation.components.dms import run_door_membrane_switch
 import time
 
 try:
@@ -17,11 +18,15 @@ if __name__ == "__main__":
     threads = []
     stop_event = threading.Event()
     try:
-        ds1_settings = settings['DS1']
-        run_door_sensor(ds1_settings, threads, stop_event)
+        # ds1_settings = settings['DS1']
+        # run_door_sensor(ds1_settings, threads, stop_event)
 
-        dus1_settings = settings['DUS1']
-        run_ultrasonic_door_sensor(dus1_settings, threads, stop_event)
+        # dus1_settings = settings['DUS1']
+        # run_ultrasonic_door_sensor(dus1_settings, threads, stop_event)
+        
+        dms_settings = settings['DMS']
+        run_door_membrane_switch(dms_settings, threads, stop_event)
+
         while True:
             time.sleep(1)
 
