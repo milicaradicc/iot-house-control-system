@@ -4,9 +4,13 @@
         "pin": 17
     },
     "DUS1": {
-        "simulated" : true,
-        "trigger_pin" : 23,
-        "echo_pin" : 24
+        "simulated": true,
+        "trigger_pin": 23,
+        "echo_pin": 24
+    },
+    "DPIR1": {
+        "simulated": true,
+        "pin": 27
     },
     "DMS": {
         "simulated": true,
