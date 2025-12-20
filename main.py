@@ -10,7 +10,7 @@ from simulation.components.dus import run_ultrasonic_door_sensor
 from simulation.components.dpir1 import run_motion_sensor
 from simulation.components.dms import run_door_membrane_switch
 from simulation.components.dl import led_on
-from simulation.components.db import buzzer_beep
+from simulation.components.db import buzzer_control
 
 try:
     import RPi.GPIO as GPIO
@@ -44,8 +44,8 @@ if __name__ == "__main__":
     threads = []
     stop_event = threading.Event()
 
-    signal.signal(signal.SIGINT, shutdown)   
-    signal.signal(signal.SIGTERM, shutdown)  
+    signal.signal(signal.SIGINT, shutdown)
+    signal.signal(signal.SIGTERM, shutdown)
 
     # DS1 – Door Sensor
     ds1_settings = settings.get('DS1', {})
@@ -63,7 +63,13 @@ if __name__ == "__main__":
     dms_settings = settings.get('DMS', {})
     run_door_membrane_switch(dms_settings, threads, stop_event)
 
-    # kontrola aktuatora
+    # DL – LED
+    dl_settings = settings.get("DL", {})
+
+    # DB – Buzzer
+    db_settings = settings.get("DB", {})
+
+    # MAIN LOOP – kontrola aktuatora
     try:
         while True:
             cmd = input("> ").strip().lower()
@@ -72,16 +78,19 @@ if __name__ == "__main__":
                 shutdown()
 
             elif cmd == "led on":
-                led_on(True)
+                led_on(dl_settings, True)
 
             elif cmd == "led off":
-                led_on(False)
+                led_on(dl_settings, False)
 
             elif cmd == "buzzer on":
-                buzzer_beep()
+                buzzer_control(db_settings, True)
+
+            elif cmd == "buzzer off":
+                buzzer_control(db_settings, False)
 
             else:
-                print("Unknown command. Available: led on, led off, buzzer on, exit")
+                print("Unknown command. Available: led on, led off, buzzer on, buzzer off, exit")
 
     except KeyboardInterrupt:
         shutdown()
