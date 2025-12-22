@@ -11,10 +11,6 @@ def dpir1_callback(motion_detected, code="DPIR1"):
     print(f"Motion detected: {'YES' if motion_detected else 'NO'}")
     print("="*20)
 
-def generate_motion_values():
-    while True:
-        yield random.choice([True, False])
-
 def run_motion_sensor(settings, threads, stop_event):
     code = "DPIR1"
 
