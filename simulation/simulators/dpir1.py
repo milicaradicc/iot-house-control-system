@@ -1,8 +1,20 @@
 import time
 import random
 
-def run_motion_sensor_simulator(callback, stop_event, code):
+import random
+
+def generate_motion_state():
+    """
+    Simulates motion sensor state.
+    True  -> motion detected
+    False -> no motion
+    """
+    return random.choice([True, False])
+
+import time
+
+def run_motion_sensor_simulator(callback, stop_event, code, delay=2):
     while not stop_event.is_set():
-        motion_detected = random.choice([True, False])
+        motion_detected = generate_motion_state()
         callback(motion_detected, code)
-        time.sleep(2)  # simulira interval ocitavanja
+        time.sleep(delay)
