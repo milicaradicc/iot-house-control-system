@@ -11,8 +11,8 @@ def generate_door_state():
     """
     return random.choice([True, False])
 
-def run_door_sensor_simulator(callback, stop_event, code, delay=2):
+def run_door_sensor_simulator(delay, callback, stop_event, publish_event, settings):
     while not stop_event.is_set():
         state = generate_door_state()
-        callback(state, code)
+        callback(state, publish_event, settings)
         time.sleep(delay)

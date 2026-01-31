@@ -1,31 +1,47 @@
 from flask import Flask, jsonify, request
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
+from simulation.settings import load_settings
 import paho.mqtt.client as mqtt
 import json
-import uuid  # za unikatan MQTT client_id
+import uuid
 
 app = Flask(__name__)
 
-token = "KpIredGkJhRy2TK5KW1URMr_QfGDxBsNvyqTKCnSw-1SdH-EtlMWAOfvdpnKTMrfdVKunTGLR8xQRCNfJis_2A=="
-org = "ftn"
-url = "http://localhost:8086"
-bucket = "example_bucket"
+settings = load_settings()
+token = settings["influxdb"]["token"]
+org = settings["influxdb"]["org"]
+url = settings["influxdb"]["url"]
+bucket = settings["influxdb"]["bucket"]
+
+mqtt_host = settings["mqtt"]["broker"]
+mqtt_port = settings["mqtt"]["port"]
+mqtt_topics = settings["mqtt"]["topics"]
 
 influxdb_client = InfluxDBClient(url=url, token=token, org=org)
 
-mqtt_client = mqtt.Client(client_id=f"flask_influx_{uuid.uuid4()}")  # unikatan client_id
-mqtt_client.connect("localhost", 1883, 60)
-
-mqtt_client.loop_start()
+mqtt_client = mqtt.Client(client_id=f"flask_influx_{uuid.uuid4()}")
 
 def on_connect(client, userdata, flags, rc):
     print(f"MQTT connected with result code {rc}")
-    client.subscribe("Distance")  # pretplata na temu
+    for topic in mqtt_topics.values():
+        client.subscribe(topic)
+        print(f"Subscribed to topic: {topic}")
 
 def on_message(client, userdata, msg):
+    print(f"Received MQTT message on topic: {msg.topic}")
     try:
-        data = json.loads(msg.payload.decode("utf-8"))
+        payload = msg.payload.decode("utf-8")
+        try:
+            data = json.loads(payload)
+        except json.JSONDecodeError:
+            data = {
+                "measurement": msg.topic,
+                "value": payload,
+                "simulated": False,
+                "runs_on": "unknown",
+                "name": "unknown"
+            }
         save_to_influx(data)
     except Exception as e:
         print(f"Error handling MQTT message: {e}")
@@ -33,18 +49,21 @@ def on_message(client, userdata, msg):
 mqtt_client.on_connect = on_connect
 mqtt_client.on_message = on_message
 
+mqtt_client.connect("localhost", 1883, 60)
+mqtt_client.loop_start()
+
 def save_to_influx(data):
     try:
         write_api = influxdb_client.write_api(write_options=SYNCHRONOUS)
         point = (
-            Point(data["measurement"])
+            Point(data.get("measurement", "unknown"))
             .tag("simulated", str(data.get("simulated", True)))
             .tag("runs_on", str(data.get("runs_on", "unknown")))
             .tag("name", str(data.get("name", "unknown")))
-            .field("measurement", float(data["value"]))
+            .field("value", float(data.get("value", 0)))
         )
         write_api.write(bucket=bucket, org=org, record=point)
-        print(f"Data written to Influx: {data}")
+        print(f"Data written to InfluxDB: {data}")
     except Exception as e:
         print(f"Error writing to InfluxDB: {e}")
 
@@ -86,7 +105,7 @@ def retrieve_aggregate_data():
     from(bucket: "{bucket}")
     |> range(start: -10m)
     |> filter(fn: (r) => r._measurement == "Distance")
-    |> mean(column: "_value")
+    |> mean(column: "value")
     '''
     return handle_influx_query(query)
 

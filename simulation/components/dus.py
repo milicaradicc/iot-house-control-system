@@ -25,7 +25,7 @@ def publisher_task(event, dus_batch):
 
 
 publish_event = threading.Event()
-publisher_thread = threading.Thread(target=publisher_task, args=(publish_event, dus_batch,))
+publisher_thread = threading.Thread(target=publisher_task, args=(publish_event, dus_batch))
 publisher_thread.daemon = True
 publisher_thread.start()
 
@@ -55,7 +55,6 @@ def dus_callback(distance, publish_event, dus_settings, code = "DUS1", verbose =
         publish_event.set()
 
 def run_ultrasonic_door_sensor(settings, threads, stop_event):
-    code = "DUS1"
     if settings['simulated']:
         from ..simulators.dus import run_ultrasonic_door_sensor_simulator
         print("Starting dus1 simulator...")

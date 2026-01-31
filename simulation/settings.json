@@ -4,26 +4,42 @@
     "device_name": "FrontDoorController",
     "location": "MainEntrance"
   },
-
+  "influxdb": {
+    "url": "http://localhost:8086",
+    "token": "uvuZCfj876AuOuMh6upl0nvDZNPsX0m6JB_JwTS_SLW7afZ3Ho-9Y0CS01C6xRkmIjHYCzWn9vR-54BVnKrg6Q==",
+    "org": "ftn",
+    "bucket": "example_bucket"
+  },
   "mqtt": {
     "broker": "localhost",
     "port": 1883,
     "base_topic": "iot/kt2",
     "batch_size": 10,
-    "batch_interval": 5
+    "batch_interval": 5,
+    "topics": {
+      "Distance": "Distance",
+      "State": "State",
+      "LED": "LED",
+      "Buzzer": "Buzzer"
+    }
   },
-
+  "flask": {
+    "host": "0.0.0.0",
+    "port": 5000
+  },
   "DS1": {
     "simulated": true,
     "pin": 17,
-    "topic": "door_sensor"
+    "topic": "State",
+    "runs_on": "PI1",
+    "name": "DS1 - Living Room"
   },
 
   "DUS1": {
     "simulated": true,
     "trigger_pin": 23,
     "echo_pin": 24,
-    "topic": "ultrasonic",
+    "topic": "Distance",
     "runs_on": "PI1",
     "name": "DUS1 - Living Room"
   },
@@ -49,7 +65,10 @@
 
   "DL": {
     "simulated": true,
-    "pin": 5
+    "pin": 5,
+    "topic": "LED",
+    "runs_on": "PI1",
+    "name": "DL - Living Room"
   },
 
   "DB": {

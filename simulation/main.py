@@ -9,7 +9,7 @@ from simulation.components.ds import run_door_sensor
 from simulation.components.dus import run_ultrasonic_door_sensor
 from simulation.components.dpir1 import run_motion_sensor
 from simulation.components.dms import run_door_membrane_switch
-from simulation.components.dl import run_door_led
+from simulation.components.dl import run_door_led, dl_callback, publish_event
 from simulation.components.db import run_door_buzzer
 
 try:
@@ -81,9 +81,11 @@ if __name__ == "__main__":
 
             elif cmd == "led on":
                 dl.on()
+                dl_callback("ON", publish_event, dl_settings)  
 
             elif cmd == "led off":
                 dl.off()
+                dl_callback("OFF", publish_event, dl_settings)  
 
             elif cmd == "buzzer on":
                 db.on()
