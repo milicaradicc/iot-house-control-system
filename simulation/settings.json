@@ -1,0 +1,59 @@
+{
+  "device": {
+    "device_id": "PI1",
+    "device_name": "FrontDoorController",
+    "location": "MainEntrance"
+  },
+
+  "mqtt": {
+    "broker": "localhost",
+    "port": 1883,
+    "base_topic": "iot/kt2",
+    "batch_size": 10,
+    "batch_interval": 5
+  },
+
+  "DS1": {
+    "simulated": true,
+    "pin": 17,
+    "topic": "door_sensor"
+  },
+
+  "DUS1": {
+    "simulated": true,
+    "trigger_pin": 23,
+    "echo_pin": 24,
+    "topic": "ultrasonic",
+    "runs_on": "PI1",
+    "name": "DUS1 - Living Room"
+  },
+
+  "DPIR1": {
+    "simulated": true,
+    "pin": 27,
+    "topic": "motion"
+  },
+
+  "DMS": {
+    "simulated": true,
+    "r1": 25,
+    "r2": 8,
+    "r3": 7,
+    "r4": 1,
+    "c1": 12,
+    "c2": 16,
+    "c3": 20,
+    "c4": 21,
+    "topic": "membrane"
+  },
+
+  "DL": {
+    "simulated": true,
+    "pin": 5
+  },
+
+  "DB": {
+    "simulated": true,
+    "pin": 6
+  }
+}

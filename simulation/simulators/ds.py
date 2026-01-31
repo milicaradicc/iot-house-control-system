@@ -1,16 +1,18 @@
 import time
 import random
 
-# def generate_values(inital_state = True):
-#     state = inital_state
-#     while True:
-#         state = random.choice([True, False])
-#         yield state
+import random
 
+def generate_door_state():
+    """
+    Simulates door sensor state.
+    True  -> door open
+    False -> door closed
+    """
+    return random.choice([True, False])
 
-def run_door_sensor_simulator(callback, stop_evant, code):
-    while not stop_evant.is_set():
-        state = random.choice([True, False])
+def run_door_sensor_simulator(callback, stop_event, code, delay=2):
+    while not stop_event.is_set():
+        state = generate_door_state()
         callback(state, code)
-        time.sleep(2)
-    
+        time.sleep(delay)

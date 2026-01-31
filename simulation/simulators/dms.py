@@ -1,10 +1,20 @@
-import time
 import random
 
-def run_door_membrane_switch_simulator(callback, stop_event, code):
-    
-    values = ["1","2","3","A","4","5","6","B","7","8","9","C","*","0","#","D"]
+def generate_membrane_key():
+    """
+    Simulates membrane keypad key press.
+    """
+    return random.choice([
+        "1", "2", "3", "A",
+        "4", "5", "6", "B",
+        "7", "8", "9", "C",
+        "*", "0", "#", "D"
+    ])
+
+import time
+
+def run_door_membrane_switch_simulator(callback, stop_event, code, delay=2):
     while not stop_event.is_set():
-        clicked_value = random.choice(values)
+        clicked_value = generate_membrane_key()
         callback(clicked_value, code)
-        time.sleep(2)
+        time.sleep(delay)

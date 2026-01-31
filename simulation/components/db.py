@@ -1,17 +1,16 @@
-import time
+from ..simulators.db import DBSimulator
 try:
     import RPi.GPIO as GPIO
     GPIO.setmode(GPIO.BCM)
 except ImportError:
     GPIO = None
 
-def buzzer_control(settings, state=True):
+def run_door_buzzer(settings, state=True):
     global buzzer_state
     buzzer_state = state
     if settings.get("simulated", True) or GPIO is None:
-        print("="*20)
-        print(f"[DB] BUZZER is {'ON' if state else 'OFF'} (simulated)")
-        print("="*20)
+        simulator = DBSimulator()
+        return simulator
     else:
         pin = settings.get("pin")
         if pin is not None:
