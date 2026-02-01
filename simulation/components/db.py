@@ -61,7 +61,7 @@ def run_door_buzzer(settings, state=True):
     global buzzer_state
     buzzer_state = state
     if settings.get("simulated", True) or GPIO is None:
-        simulator = DBSimulator()
+        simulator = DBSimulator(db_callback)
         return simulator
     else:
         pin = settings.get("pin")

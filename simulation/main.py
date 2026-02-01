@@ -81,20 +81,16 @@ if __name__ == "__main__":
 
             elif cmd == "led on":
                 dl.on()
-                dl_callback("ON", publish_event, dl_settings)  
 
             elif cmd == "led off":
                 dl.off()
-                dl_callback("OFF", publish_event, dl_settings)  
 
             elif cmd == "buzzer on":
                 db.on()
-                db_callback("ON", pb, db_settings)  
 
             elif cmd == "buzzer off":
                 db.off()
-                db_callback("OFF", pb, db_settings)  
-
+               
 
             else:
                 print("Unknown command. Available: led on, led off, buzzer on, buzzer off, exit")

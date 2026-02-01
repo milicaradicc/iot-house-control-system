@@ -56,9 +56,12 @@ def dl_callback(value, publish_event, dl_settings, code="DL"):
     if publish_data_counter >= publish_data_limit:
         publish_event.set()
 
+
+
 def run_door_led(settings, state=True):
+    
     if settings.get("simulated", True) or GPIO is None:
-        simulator = DLSimulator()
+        simulator = DLSimulator(dl_callback)
         return simulator
     else:
         pin = settings.get("pin")
