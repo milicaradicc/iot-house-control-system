@@ -8,7 +8,7 @@
     "url": "http://localhost:8086",
     "token": "uvuZCfj876AuOuMh6upl0nvDZNPsX0m6JB_JwTS_SLW7afZ3Ho-9Y0CS01C6xRkmIjHYCzWn9vR-54BVnKrg6Q==",
     "org": "ftn",
-    "bucket": "example_bucket"
+    "bucket": "new_bucket"
   },
   "mqtt": {
     "broker": "localhost",

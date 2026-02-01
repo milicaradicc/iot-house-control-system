@@ -41,7 +41,7 @@ def db_callback(value, publish_event, db_settings, code="DB"):
     numeric_value = 1 if value == "ON" else 0
 
     distance_payload = {
-        "measurement": "DB",
+        "measurement": "Buzzer",
         "simulated": db_settings['simulated'],
         "runs_on": db_settings["runs_on"],
         "name": db_settings["name"],
@@ -49,7 +49,7 @@ def db_callback(value, publish_event, db_settings, code="DB"):
     }
 
     with counter_lock:
-        db_batch.append(('DB', json.dumps(distance_payload), 0, True))
+        db_batch.append(('Buzzer', json.dumps(distance_payload), 0, True))
         publish_data_counter += 1
         print(f"[DB] Prepared to publish: {distance_payload}")
 

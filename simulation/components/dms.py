@@ -45,7 +45,7 @@ def dms_callback(key, publish_event, dms_settings, code = "DMS", verbose = False
     }
 
     with counter_lock:
-        dms_batch.append(('Key', json.dumps(state_payload), 0, True ))
+        dms_batch.append(('Membrane', json.dumps(state_payload), 0, True )) # ovo treba 
         publish_data_counter += 1
 
     if publish_data_counter >= publish_data_limit:

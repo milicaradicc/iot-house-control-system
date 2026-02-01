@@ -10,7 +10,7 @@ from components.dus import run_ultrasonic_door_sensor
 from components.dpir1 import run_motion_sensor
 from components.dms import run_door_membrane_switch
 from components.dl import run_door_led, dl_callback, publish_event
-from components.db import run_door_buzzer
+from components.db import run_door_buzzer, db_callback, publish_event as pb
 
 try:
     import RPi.GPIO as GPIO
@@ -89,9 +89,12 @@ if __name__ == "__main__":
 
             elif cmd == "buzzer on":
                 db.on()
+                db_callback("ON", pb, db_settings)  
 
             elif cmd == "buzzer off":
                 db.off()
+                db_callback("OFF", pb, db_settings)  
+
 
             else:
                 print("Unknown command. Available: led on, led off, buzzer on, buzzer off, exit")
