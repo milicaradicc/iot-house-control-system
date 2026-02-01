@@ -40,14 +40,16 @@ def dpir1_callback(motion_detected, publish_event, dpir_settings, code="DPIR1", 
         print(f"Motion detected: {'YES' if motion_detected else 'NO'}")
         print("="*20)
 
-    state_payload = {
+    motion_payload = {
         "measurement": "Motion detected",
         "simulated" : dpir_settings['simulated'],
+        "runs_on": dpir_settings["runs_on"],
+        "name": dpir_settings["name"],
         "value": motion_detected
     }
 
     with counter_lock:
-        dpir_batch.append(('Motion', json.dumps(state_payload), 0, True ))
+        dpir_batch.append(('Motion', json.dumps(motion_payload), 0, True ))
         publish_data_counter += 1
 
     if publish_data_counter >= publish_data_limit:

@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request
-from influxdb_client import InfluxDBClient, Point
+from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 from simulation.settings import load_settings
 import paho.mqtt.client as mqtt
@@ -56,13 +56,23 @@ mqtt_client.loop_start()                            # thread that listens messag
 def save_to_influx(data):
     try:
         write_api = influxdb_client.write_api(write_options=SYNCHRONOUS)            #
+        # point = (
+        #     Point(data.get("measurement", "unknown"))
+        #     .tag("simulated", str(data.get("simulated", True)))
+        #     .tag("runs_on", str(data.get("runs_on", "unknown")))
+        #     .tag("name", str(data.get("name", "unknown")))
+        #     .field("value", float(data.get("value", 0)))
+        # )
+
+    
         point = (
-            Point(data.get("measurement", "unknown"))
-            .tag("simulated", str(data.get("simulated", True)))
-            .tag("runs_on", str(data.get("runs_on", "unknown")))
-            .tag("name", str(data.get("name", "unknown")))
-            .field("value", float(data.get("value", 0)))
-        )
+        Point(data["measurement"])
+        # .tag("measurement", data['measurement'])
+        .tag("simulated", data["simulated"])
+        .tag("runs_on", data["runs_on"])
+        .tag("name", data["name"])
+        .field("value", data["value"])
+    )
         write_api.write(bucket=bucket, org=org, record=point)
         print(f"Data written to InfluxDB: {data}")
     except Exception as e:

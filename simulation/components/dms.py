@@ -38,14 +38,18 @@ def dms_callback(key, publish_event, dms_settings, code = "DMS", verbose = False
         print(f"Code: {code}")
         print(f"Key: {key}")
 
-    state_payload = {
-        "measurement": "Motion detected",
+    key_payload = {
+        "measurement": "Key",
         "simulated" : dms_settings['simulated'],
+        "runs_on": dms_settings["runs_on"],
+        "name": dms_settings["name"],
         "value": key
     }
 
+
+
     with counter_lock:
-        dms_batch.append(('Membrane', json.dumps(state_payload), 0, True )) # ovo treba 
+        dms_batch.append(('Membrane', json.dumps(key_payload), 0, True )) 
         publish_data_counter += 1
 
     if publish_data_counter >= publish_data_limit:
