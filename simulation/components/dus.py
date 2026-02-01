@@ -1,9 +1,9 @@
-from simulation.simulators.dus import run_ultrasonic_door_sensor_simulator
+# from simulators.dus import run_ultrasonic_door_sensor_simulator
 import threading
 import time
 import json
 import paho.mqtt.publish as publish
-from simulation.broker_settings import HOSTNAME, PORT
+from broker_settings import HOSTNAME, PORT
 
 
 dus_batch = []
@@ -56,14 +56,14 @@ def dus_callback(distance, publish_event, dus_settings, code = "DUS1", verbose =
 
 def run_ultrasonic_door_sensor(settings, threads, stop_event):
     if settings['simulated']:
-        from ..simulators.dus import run_ultrasonic_door_sensor_simulator
+        from simulators.dus import run_ultrasonic_door_sensor_simulator
         print("Starting dus1 simulator...")
         dus1_thread = threading.Thread(target= run_ultrasonic_door_sensor_simulator, args=(2, dus_callback, stop_event, publish_event, settings))
         dus1_thread.start()
         threads.append(dus1_thread)
         print("DUS1 simulator started!")
     else:
-        from ..sensors.dus import run_dus_loop, DoorUltrasonicSensor
+        from sensors.dus import run_dus_loop, DoorUltrasonicSensor
         print("Starting dus1 loop...")
         dus = DoorUltrasonicSensor(settings['trigger_pin'], settings['echo_pin'])
         dus1_thread = threading.Thread(target= run_dus_loop, args=(dus, 2, dus_callback, stop_event, publish_event, settings))

@@ -1,5 +1,5 @@
-from ..simulators.dl import DLSimulator
-from simulation.broker_settings import HOSTNAME, PORT
+from simulators.dl import DLSimulator
+from broker_settings import HOSTNAME, PORT
 
 import paho.mqtt.publish as publish
 import threading

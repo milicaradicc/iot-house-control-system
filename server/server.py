@@ -6,6 +6,7 @@ import paho.mqtt.client as mqtt
 import json
 import uuid
 
+#Flask service that uses MQTT protocol and writes to INfluxDB, it enables sending HTTP queries 
 app = Flask(__name__)
 
 settings = load_settings()
@@ -22,18 +23,18 @@ influxdb_client = InfluxDBClient(url=url, token=token, org=org)
 
 mqtt_client = mqtt.Client(client_id=f"flask_influx_{uuid.uuid4()}")
 
-def on_connect(client, userdata, flags, rc):
+def on_connect(client, userdata, flags, rc):                    # when connecting is done 
     print(f"MQTT connected with result code {rc}")
     for topic in mqtt_topics.values():
-        client.subscribe(topic)
+        client.subscribe(topic)                                 #subscribe to all topics
         print(f"Subscribed to topic: {topic}")
 
-def on_message(client, userdata, msg):
+def on_message(client, userdata, msg):                          # when recieve message
     print(f"Received MQTT message on topic: {msg.topic}")
     try:
         payload = msg.payload.decode("utf-8")
         try:
-            data = json.loads(payload)
+            data = json.loads(payload)                          # JSON string -> dict
         except json.JSONDecodeError:
             data = {
                 "measurement": msg.topic,
@@ -49,12 +50,12 @@ def on_message(client, userdata, msg):
 mqtt_client.on_connect = on_connect
 mqtt_client.on_message = on_message
 
-mqtt_client.connect("localhost", 1883, 60)
-mqtt_client.loop_start()
+mqtt_client.connect("localhost", 1883, 60)          # connect on MQTT brocker, keep alive 60s
+mqtt_client.loop_start()                            # thread that listens messages and call callback functions
 
 def save_to_influx(data):
     try:
-        write_api = influxdb_client.write_api(write_options=SYNCHRONOUS)
+        write_api = influxdb_client.write_api(write_options=SYNCHRONOUS)            #
         point = (
             Point(data.get("measurement", "unknown"))
             .tag("simulated", str(data.get("simulated", True)))

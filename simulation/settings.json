@@ -20,7 +20,10 @@
       "Distance": "Distance",
       "State": "State",
       "LED": "LED",
-      "Buzzer": "Buzzer"
+      "Buzzer": "Buzzer",
+      "Membrane": "Membrane",
+      "Motion": "Motion"
+
     }
   },
   "flask": {
@@ -47,7 +50,9 @@
   "DPIR1": {
     "simulated": true,
     "pin": 27,
-    "topic": "motion"
+    "topic": "Motion",
+    "runs_on": "PI1",
+    "name": "DPIR1 - Front door"
   },
 
   "DMS": {
@@ -60,7 +65,9 @@
     "c2": 16,
     "c3": 20,
     "c4": 21,
-    "topic": "membrane"
+    "topic": "Membrane",
+    "runs_on": "PI1",
+    "name": "DMS - Front door"
   },
 
   "DL": {
@@ -73,6 +80,10 @@
 
   "DB": {
     "simulated": true,
-    "pin": 6
+    "pin": 6,
+    "buzzer": "Buzzerf",
+    "runs_on": "PI1",
+    "name": "DB - front door",
+    "topic" : "Buzzer"
   }
 }
