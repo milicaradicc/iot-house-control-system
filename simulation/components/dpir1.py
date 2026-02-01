@@ -19,7 +19,7 @@ def publisher_task(event, dpir_batch):
             publish_data_counter = 0
             dpir_batch.clear()
         publish.multiple(local_dpir_batch, hostname=HOSTNAME, port=PORT)
-        print(f'published {publish_data_limit} ds values')
+        print(f'published {publish_data_limit} dpir values')
         event.clear()
 
 publish_event = threading.Event()
