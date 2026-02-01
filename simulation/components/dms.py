@@ -39,7 +39,7 @@ def dms_callback(key, publish_event, dms_settings, code = "DMS", verbose = False
         print(f"Key: {key}")
 
     state_payload = {
-        "measuerment": "Motion detected",
+        "measurement": "Motion detected",
         "simulated" : dms_settings['simulated'],
         "value": key
     }

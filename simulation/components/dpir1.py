@@ -41,7 +41,7 @@ def dpir1_callback(motion_detected, publish_event, dpir_settings, code="DPIR1", 
         print("="*20)
 
     state_payload = {
-        "measuerment": "Motion detected",
+        "measurement": "Motion detected",
         "simulated" : dpir_settings['simulated'],
         "value": motion_detected
     }
