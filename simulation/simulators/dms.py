@@ -13,8 +13,8 @@ def generate_membrane_key():
 
 import time
 
-def run_door_membrane_switch_simulator(callback, stop_event, code, delay=2):
+def run_door_membrane_switch_simulator(callback, stop_event, publish_event,settings, delay=2):
     while not stop_event.is_set():
         clicked_value = generate_membrane_key()
-        callback(clicked_value, code)
+        callback(clicked_value, publish_event, settings)
         time.sleep(delay)

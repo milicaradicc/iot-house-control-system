@@ -8,7 +8,7 @@
     "url": "http://localhost:8086",
     "token": "uvuZCfj876AuOuMh6upl0nvDZNPsX0m6JB_JwTS_SLW7afZ3Ho-9Y0CS01C6xRkmIjHYCzWn9vR-54BVnKrg6Q==",
     "org": "ftn",
-    "bucket": "example_bucket"
+    "bucket": "proba5"
   },
   "mqtt": {
     "broker": "localhost",
@@ -20,7 +20,9 @@
       "Distance": "Distance",
       "State": "State",
       "LED": "LED",
-      "Buzzer": "Buzzer"
+      "Buzzer": "Buzzer",
+      "Membrane": "Membrane",
+      "Motion": "Motion"
     }
   },
   "flask": {
@@ -47,7 +49,9 @@
   "DPIR1": {
     "simulated": true,
     "pin": 27,
-    "topic": "motion"
+    "topic": "Motion",
+    "runs_on": "PI1",
+    "name": "DPIR1 - Front door"
   },
 
   "DMS": {
@@ -60,7 +64,9 @@
     "c2": 16,
     "c3": 20,
     "c4": 21,
-    "topic": "membrane"
+    "topic": "Membrane",
+    "runs_on": "PI1",
+    "name": "DMS - Front door"
   },
 
   "DL": {
@@ -73,6 +79,9 @@
 
   "DB": {
     "simulated": true,
-    "pin": 6
+    "pin": 6,
+    "runs_on": "PI1",
+    "topic" : "Buzzer",
+    "name": "DB - front door"
   }
 }

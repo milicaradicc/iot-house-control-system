@@ -2,15 +2,15 @@ import threading
 import time
 import json
 import paho.mqtt.publish as publish
-from simulation.broker_settings import HOSTNAME, PORT
-from simulation.simulators.ds import run_door_sensor_simulator
+from broker_settings import HOSTNAME, PORT
+# from simulators.ds import run_door_sensor_simulator
 
 ds_batch = []
 publish_data_counter = 0
 publish_data_limit = 5
 counter_lock = threading.Lock()
 
-def publisher_task(event, dus_batch):
+def publisher_task(event, ds_batch):
     global publish_data_counter, publish_data_limit
     while True:
         event.wait()
@@ -43,7 +43,7 @@ def ds_callback(state, publish_event, ds_settings, code = "DS1", verbose = False
         "simulated": ds_settings['simulated'],
         "runs_on": ds_settings["runs_on"],
         "name": ds_settings["name"],
-        "value": state
+        "value": 1 if state else 0  
     }
 
     with counter_lock:
@@ -58,14 +58,14 @@ def run_door_sensor(settings, threads, stop_event):
     code = "DS1"
 
     if settings['simulated']:
-        from ..simulators.ds import run_door_sensor_simulator
+        from simulators.ds import run_door_sensor_simulator
         print("Starting ds1 simulator...")
         ds1_thread = threading.Thread(target= run_door_sensor_simulator, args = (2, ds_callback, stop_event, publish_event, settings))
         ds1_thread.start()
         threads.append(ds1_thread)
         print("DS1 simulator started!")
     else:
-        from ..sensors.ds import run_ds_loop, DoorSensor
+        from sensors.ds import run_ds_loop, DoorSensor
         print("Starting ds1 loop...")
         ds = DoorSensor(settings['pin'])
         ds1_thread = threading.Thread(target= run_ds_loop, args=(ds, 0.1, ds_callback, stop_event, code))

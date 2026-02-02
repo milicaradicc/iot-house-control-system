@@ -1,5 +1,5 @@
-from ..simulators.dl import DLSimulator
-from simulation.broker_settings import HOSTNAME, PORT
+from simulators.dl import DLSimulator
+from broker_settings import HOSTNAME, PORT
 
 import paho.mqtt.publish as publish
 import threading
@@ -38,7 +38,12 @@ publisher_thread.start()
 def dl_callback(value, publish_event, dl_settings, code="DL"):
     global publish_data_counter, publish_data_limit
 
-    numeric_value = 1 if value == "ON" else 0
+    if value:
+        numeric_value = 1 
+    else:
+        numeric_value = 0
+
+    print(numeric_value)
 
     distance_payload = {
         "measurement": "LED",
@@ -56,9 +61,19 @@ def dl_callback(value, publish_event, dl_settings, code="DL"):
     if publish_data_counter >= publish_data_limit:
         publish_event.set()
 
+
+
 def run_door_led(settings, state=True):
     if settings.get("simulated", True) or GPIO is None:
-        simulator = DLSimulator()
+        # 1. Kreiramo helper funkciju koja "zatvara" (captures) settings i publish_event
+        def callback_wrapper(value):
+            # 2. Kada simulator pozove callback_wrapper SA value parametrom,
+            #    mi prosleđujemo tu vrednost dalje u dl_callback
+            dl_callback(value, publish_event, settings)
+        
+        # 3. Dajemo wrapperu simulatoru
+        simulator = DLSimulator(callback_wrapper)
+
         return simulator
     else:
         pin = settings.get("pin")

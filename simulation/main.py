@@ -3,14 +3,14 @@ import time
 import signal
 import sys
 
-from simulation.settings import load_settings
+from settings import load_settings
 
-from simulation.components.ds import run_door_sensor
-from simulation.components.dus import run_ultrasonic_door_sensor
-from simulation.components.dpir1 import run_motion_sensor
-from simulation.components.dms import run_door_membrane_switch
-from simulation.components.dl import run_door_led, dl_callback, publish_event
-from simulation.components.db import run_door_buzzer
+from components.ds import run_door_sensor
+from components.dus import run_ultrasonic_door_sensor
+from components.dpir1 import run_motion_sensor
+from components.dms import run_door_membrane_switch
+from components.dl import run_door_led, dl_callback, publish_event
+from components.db import run_door_buzzer, db_callback, publish_event as pb
 
 try:
     import RPi.GPIO as GPIO
@@ -81,17 +81,16 @@ if __name__ == "__main__":
 
             elif cmd == "led on":
                 dl.on()
-                dl_callback("ON", publish_event, dl_settings)  
 
             elif cmd == "led off":
                 dl.off()
-                dl_callback("OFF", publish_event, dl_settings)  
 
             elif cmd == "buzzer on":
                 db.on()
 
             elif cmd == "buzzer off":
                 db.off()
+               
 
             else:
                 print("Unknown command. Available: led on, led off, buzzer on, buzzer off, exit")
