@@ -67,7 +67,7 @@ def save_to_influx(data):
     
         point = (
         Point(data["measurement"])
-        # .tag("measurement", data['measurement'])
+        .tag("measurement", data['measurement'])
         .tag("simulated", data["simulated"])
         .tag("runs_on", data["runs_on"])
         .tag("name", data["name"])

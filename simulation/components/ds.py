@@ -43,7 +43,7 @@ def ds_callback(state, publish_event, ds_settings, code = "DS1", verbose = False
         "simulated": ds_settings['simulated'],
         "runs_on": ds_settings["runs_on"],
         "name": ds_settings["name"],
-        "value": state
+        "value": 1 if state else 0  
     }
 
     with counter_lock:

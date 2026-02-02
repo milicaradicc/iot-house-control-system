@@ -37,8 +37,12 @@ publisher_thread.start()
 
 def db_callback(value, publish_event, db_settings, code="DB"):
     global publish_data_counter, publish_data_limit
-
-    numeric_value = 1 if value == "ON" else 0
+    
+    numeric_value = 0
+    if value:
+        numeric_value = 1 
+    else:
+        numeric_value = 0
 
     distance_payload = {
         "measurement": "Buzzer",
@@ -58,10 +62,11 @@ def db_callback(value, publish_event, db_settings, code="DB"):
 
 
 def run_door_buzzer(settings, state=True):
-    global buzzer_state
-    buzzer_state = state
     if settings.get("simulated", True) or GPIO is None:
-        simulator = DBSimulator(db_callback)
+        def callback_wrapper(value):
+            db_callback(value, publish_event, settings)
+        
+        simulator = DBSimulator(callback_wrapper)
         return simulator
     else:
         pin = settings.get("pin")

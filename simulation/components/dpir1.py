@@ -45,7 +45,7 @@ def dpir1_callback(motion_detected, publish_event, dpir_settings, code="DPIR1", 
         "simulated" : dpir_settings['simulated'],
         "runs_on": dpir_settings["runs_on"],
         "name": dpir_settings["name"],
-        "value": motion_detected
+        "value": 1 if motion_detected else 0 
     }
 
     with counter_lock:
