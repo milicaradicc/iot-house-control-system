@@ -5,6 +5,7 @@ from simulation.settings import load_settings
 import paho.mqtt.client as mqtt
 import json
 import uuid
+import time
 
 #Flask service that uses MQTT protocol and writes to INfluxDB, it enables sending HTTP queries 
 app = Flask(__name__)
@@ -21,20 +22,21 @@ mqtt_topics = settings["mqtt"]["topics"]
 
 influxdb_client = InfluxDBClient(url=url, token=token, org=org)
 
-mqtt_client = mqtt.Client(client_id=f"flask_influx_{uuid.uuid4()}")
+# Use callback API version 2 to avoid deprecation warning
+mqtt_client = mqtt.Client(client_id=f"flask_influx_{uuid.uuid4()}", callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
 
-def on_connect(client, userdata, flags, rc):                    # when connecting is done 
+def on_connect(client, userdata, flags, rc, properties=None):
     print(f"MQTT connected with result code {rc}")
     for topic in mqtt_topics.values():
-        client.subscribe(topic)                                 #subscribe to all topics
+        client.subscribe(topic)
         print(f"Subscribed to topic: {topic}")
 
-def on_message(client, userdata, msg):                          # when recieve message
+def on_message(client, userdata, msg):
     print(f"Received MQTT message on topic: {msg.topic}")
     try:
         payload = msg.payload.decode("utf-8")
         try:
-            data = json.loads(payload)                          # JSON string -> dict
+            data = json.loads(payload)
         except json.JSONDecodeError:
             data = {
                 "measurement": msg.topic,
@@ -50,20 +52,28 @@ def on_message(client, userdata, msg):                          # when recieve m
 mqtt_client.on_connect = on_connect
 mqtt_client.on_message = on_message
 
-mqtt_client.connect("localhost", 1883, 60)          # connect on MQTT brocker, keep alive 60s
-mqtt_client.loop_start()                            # thread that listens messages and call callback functions
+# Connect with retry logic
+max_retries = 5
+retry_delay = 2
+
+for attempt in range(max_retries):
+    try:
+        print(f"Attempting to connect to MQTT broker at {mqtt_host}:{mqtt_port} (attempt {attempt + 1}/{max_retries})...")
+        mqtt_client.connect(mqtt_host, mqtt_port, 60)
+        mqtt_client.loop_start()
+        print("Successfully connected to MQTT broker!")
+        break
+    except Exception as e:
+        if attempt < max_retries - 1:
+            print(f"Connection failed: {e}. Retrying in {retry_delay} seconds...")
+            time.sleep(retry_delay)
+        else:
+            print(f"Failed to connect to MQTT broker after {max_retries} attempts: {e}")
+            raise
 
 def save_to_influx(data):
     try:
-        write_api = influxdb_client.write_api(write_options=SYNCHRONOUS)            #
-        # point = (
-        #     Point(data.get("measurement", "unknown"))
-        #     .tag("simulated", str(data.get("simulated", True)))
-        #     .tag("runs_on", str(data.get("runs_on", "unknown")))
-        #     .tag("name", str(data.get("name", "unknown")))
-        #     .field("value", float(data.get("value", 0)))
-        # )
-
+        write_api = influxdb_client.write_api(write_options=SYNCHRONOUS)
     
         point = (
         Point(data["measurement"])
@@ -78,15 +88,6 @@ def save_to_influx(data):
     except Exception as e:
         print(f"Error writing to InfluxDB: {e}")
 
-@app.route("/store_data", methods=["POST"])
-def store_data_route():
-    try:
-        data = request.get_json()
-        save_to_influx(data)
-        return jsonify({"status": "success"})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)})
-
 def handle_influx_query(query):
     try:
         query_api = influxdb_client.query_api()
@@ -100,25 +101,6 @@ def handle_influx_query(query):
         return jsonify({"status": "success", "data": container})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
-
-@app.route("/simple_query", methods=["GET"])
-def retrieve_simple_data():
-    query = f'''
-    from(bucket: "{bucket}")
-    |> range(start: -10m)
-    |> filter(fn: (r) => r._measurement == "Distance")
-    '''
-    return handle_influx_query(query)
-
-@app.route("/aggregate_query", methods=["GET"])
-def retrieve_aggregate_data():
-    query = f'''
-    from(bucket: "{bucket}")
-    |> range(start: -10m)
-    |> filter(fn: (r) => r._measurement == "Distance")
-    |> mean(column: "value")
-    '''
-    return handle_influx_query(query)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)

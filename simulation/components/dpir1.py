@@ -28,9 +28,8 @@ publisher_thread.daemon = True
 publisher_thread.start()
 
 
-def dpir1_callback(motion_detected, publish_event, dpir_settings, code="DPIR1", verbose = False):
+def dpir1_callback(motion_detected, publish_event, dpir_settings, code="DPIR1", verbose = True):
     global publish_data_counter, publish_data_limit
-
 
     if verbose:
         t = time.localtime()
@@ -64,7 +63,7 @@ def run_motion_sensor(settings, threads, stop_event):
 
         t = threading.Thread(
             target=run_motion_sensor_simulator,
-            args=(dpir1_callback, stop_event, publish_event, settings)    #missing argument?
+            args=(dpir1_callback, stop_event, publish_event, settings)    
         )
 
         t.start()
@@ -77,9 +76,10 @@ def run_motion_sensor(settings, threads, stop_event):
 
         sensor = DPIR1Sensor(settings['pin'])
 
+        # FIXED: Added publish_event and settings parameters
         t = threading.Thread(
             target=run_dpir1_loop,
-            args=(sensor, settings.get('delay', 2), dpir1_callback, stop_event)
+            args=(sensor, settings.get('delay', 0.5), dpir1_callback, stop_event, code, publish_event, settings)
         )
 
         t.start()

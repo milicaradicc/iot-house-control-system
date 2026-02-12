@@ -10,8 +10,8 @@ class DPIR1Sensor(object):
         return GPIO.input(self.pin) == 1  
 
 
-def run_dpir1_loop(sensor, delay, callback, stop_event, code="DPIR1"):
+def run_dpir1_loop(sensor, delay, callback, stop_event, code, publish_event, dpir_settings):
     while not stop_event.is_set():
         motion_detected = sensor.detect_motion()
-        callback(motion_detected, code)
+        callback(motion_detected, publish_event, dpir_settings, code)
         time.sleep(delay)

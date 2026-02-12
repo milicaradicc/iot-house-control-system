@@ -5,13 +5,13 @@
     "location": "MainEntrance"
   },
   "influxdb": {
-    "url": "http://localhost:8086",
+    "url": "http://192.168.107.175:8086",
     "token": "uvuZCfj876AuOuMh6upl0nvDZNPsX0m6JB_JwTS_SLW7afZ3Ho-9Y0CS01C6xRkmIjHYCzWn9vR-54BVnKrg6Q==",
     "org": "ftn",
     "bucket": "proba5"
   },
   "mqtt": {
-    "broker": "localhost",
+    "broker": "192.168.107.175",
     "port": 1883,
     "base_topic": "iot/kt2",
     "batch_size": 10,
@@ -47,7 +47,7 @@
   },
 
   "DPIR1": {
-    "simulated": true,
+    "simulated": false,
     "pin": 27,
     "topic": "Motion",
     "runs_on": "PI1",
