@@ -27,7 +27,7 @@ publisher_thread = threading.Thread(target=publisher_task, args=(publish_event, 
 publisher_thread.daemon = True
 publisher_thread.start()
 
-def dms_callback(key, publish_event, dms_settings, code = "DMS", verbose = False):
+def dms_callback(key, publish_event, dms_settings, code = "DMS", verbose = True):
 
     global publish_data_counter, publish_data_limit
 
@@ -45,8 +45,6 @@ def dms_callback(key, publish_event, dms_settings, code = "DMS", verbose = False
         "name": dms_settings["name"],
         "value": key
     }
-
-
 
     with counter_lock:
         dms_batch.append(('Membrane', json.dumps(key_payload), 0, True )) 
@@ -77,7 +75,8 @@ def run_door_membrane_switch(settings, threads, stop_event):
             settings['c3'],
             settings['c4']
             )
-        dms_thread = threading.Thread(target= run_dms_loop, args=(dms, 2, dms_callback, stop_event, code))
+        # FIXED: Added publish_event and settings parameters
+        dms_thread = threading.Thread(target= run_dms_loop, args=(dms, 0.1, dms_callback, stop_event, code, publish_event, settings))
         dms_thread.start()
         threads.append(dms_thread)
         print("DMS loop started!")

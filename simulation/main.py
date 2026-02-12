@@ -4,7 +4,7 @@ import signal
 import sys
 
 from settings import load_settings
-
+# 12
 from components.ds import run_door_sensor
 from components.dus import run_ultrasonic_door_sensor
 from components.dpir1 import run_motion_sensor
