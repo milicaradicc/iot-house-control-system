@@ -8,6 +8,7 @@ from settings import load_settings
 from components.dht1 import run_bedroom_dht
 from components.dht2 import run_master_bedroom_dht
 from components.ir import run_bedroom_ir
+from components.dpir3 import run_living_room_dpir
 
 try:
     import RPi.GPIO as GPIO
@@ -51,11 +52,11 @@ if __name__ == "__main__":
     # dht2_settings = settings.get('DHT2', {})
     # run_master_bedroom_dht(dht1_settings, threads, stop_event)
 
-    ir_settings = settings.get('IR', {})
-    run_bedroom_ir(ir_settings, threads, stop_event)
+    # ir_settings = settings.get('IR', {})
+    # run_bedroom_ir(ir_settings, threads, stop_event)
 
-    # dpir3_settings = settings.get('DPIR3', {})
-    # run_living_room_dpir(dpir3_settings, threads, stop_event)
+    dpir3_settings = settings.get('DPIR3', {})
+    run_living_room_dpir(dpir3_settings, threads, stop_event)
 
     # brgd_settings = settings.get('BRGB', {})
     # run_bedroom_rgb(brgd_settings, threads, stop_event)

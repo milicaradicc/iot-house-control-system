@@ -27,6 +27,9 @@
         },
         "IR": {
           "command": "IR/command"
+        },
+        "DPIR3":{
+          "motion": "DPIR3/motion"
         }
       }
   },
