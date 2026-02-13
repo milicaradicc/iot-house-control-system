@@ -7,6 +7,7 @@ from settings import load_settings
 
 from components.dht1 import run_bedroom_dht
 from components.dht2 import run_master_bedroom_dht
+from components.ir import run_bedroom_ir
 
 try:
     import RPi.GPIO as GPIO
@@ -42,13 +43,27 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
 
-    # DHT1 
-    dht1_settings = settings.get('DHT1', {})
-    run_bedroom_dht(dht1_settings, threads, stop_event)
+    # # DHT1 
+    # dht1_settings = settings.get('DHT1', {})
+    # run_bedroom_dht(dht1_settings, threads, stop_event)
 
-    # DHT2
-    dht2_settings = settings.get('DHT2', {})
-    run_master_bedroom_dht(dht1_settings, threads, stop_event)
+    # # DHT2
+    # dht2_settings = settings.get('DHT2', {})
+    # run_master_bedroom_dht(dht1_settings, threads, stop_event)
+
+    ir_settings = settings.get('IR', {})
+    run_bedroom_ir(ir_settings, threads, stop_event)
+
+    # dpir3_settings = settings.get('DPIR3', {})
+    # run_living_room_dpir(dpir3_settings, threads, stop_event)
+
+    # brgd_settings = settings.get('BRGB', {})
+    # run_bedroom_rgb(brgd_settings, threads, stop_event)
+
+    # lcd_settings = settings.get('LCD', {})
+    # run_living_room_lcd(lcd_settings, threads, stop_event)
+
+
     
     # MAIN LOOP – kontrola aktuatora
     try:
@@ -58,8 +73,8 @@ if __name__ == "__main__":
             if cmd == "exit":
                 shutdown()
 
-            # elif cmd == "led on":
-            #     dl.on()
+            # elif cmd == "rgb off":
+            #     rgb.off()
 
             # elif cmd == "led off":
             #     dl.off()
@@ -72,7 +87,7 @@ if __name__ == "__main__":
                
 
             else:
-                print("Unknown command. Available: led on, led off, buzzer on, buzzer off, exit")
+                print("Unknown command. Available:  exit")
 
     except KeyboardInterrupt:
         shutdown()

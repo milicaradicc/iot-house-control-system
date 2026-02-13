@@ -24,6 +24,9 @@
         "DHT2": {
           "humidity": "DHT2/humidity",
           "temperature": "DHT2/temperature"
+        },
+        "IR": {
+          "command": "IR/command"
         }
       }
   },
