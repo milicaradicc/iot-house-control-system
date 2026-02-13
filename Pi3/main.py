@@ -6,6 +6,7 @@ import sys
 from settings import load_settings
 
 from components.dht1 import run_bedroom_dht
+from components.dht2 import run_master_bedroom_dht
 
 try:
     import RPi.GPIO as GPIO
@@ -46,7 +47,8 @@ if __name__ == "__main__":
     run_bedroom_dht(dht1_settings, threads, stop_event)
 
     # DHT2
-    dht1_settings = settings.get('DHT1', {})
+    dht2_settings = settings.get('DHT2', {})
+    run_master_bedroom_dht(dht1_settings, threads, stop_event)
     
     # MAIN LOOP – kontrola aktuatora
     try:
