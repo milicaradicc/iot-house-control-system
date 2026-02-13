@@ -30,6 +30,9 @@
         },
         "DPIR3":{
           "motion": "DPIR3/motion"
+        },
+        "BRGB":{
+          "color": "BRGB/color"
         }
       }
   },

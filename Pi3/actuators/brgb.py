@@ -1,57 +1,57 @@
 import RPi.GPIO as GPIO
 from time import sleep
 
-#disable warnings (optional)
-GPIO.setwarnings(False)
 
-GPIO.setmode(GPIO.BCM)
+class RGBLed:
+    def __init__(self,r_pin, g_pin, b_pin, callback):
+        self.r_pin = r_pin
+        self.g_pin = g_pin
+        self.b_pin = b_pin
 
-RED_PIN = 12
-GREEN_PIN = 13
-BLUE_PIN = 19
+        self.callback = callback
 
-#set pins as outputs
-GPIO.setup(RED_PIN, GPIO.OUT)
-GPIO.setup(GREEN_PIN, GPIO.OUT)
-GPIO.setup(BLUE_PIN, GPIO.OUT)
+        #set pins as outputs
+        GPIO.setup(self.r_pin, GPIO.OUT)
+        GPIO.setup(self.g_pin, GPIO.OUT)
+        GPIO.setup(self.b_pin, GPIO.OUT)
 
-def turnOff():
-    GPIO.output(RED_PIN, GPIO.LOW)
-    GPIO.output(GREEN_PIN, GPIO.LOW)
-    GPIO.output(BLUE_PIN, GPIO.LOW)
-    
-def white():
-    GPIO.output(RED_PIN, GPIO.HIGH)
-    GPIO.output(GREEN_PIN, GPIO.HIGH)
-    GPIO.output(BLUE_PIN, GPIO.HIGH)
-    
-def red():
-    GPIO.output(RED_PIN, GPIO.HIGH)
-    GPIO.output(GREEN_PIN, GPIO.LOW)
-    GPIO.output(BLUE_PIN, GPIO.LOW)
+    def turnOff(self):
+        GPIO.output(self.r_pin, GPIO.LOW)
+        GPIO.output(self.g_pin, GPIO.LOW)
+        GPIO.output(self.b_pin, GPIO.LOW)
+        
+    def white(self):
+        GPIO.output(self.r_pin, GPIO.HIGH)
+        GPIO.output(self.g_pin, GPIO.HIGH)
+        GPIO.output(self.b_pin, GPIO.HIGH)
+        
+    def red(self):
+        GPIO.output(self.r_pin, GPIO.HIGH)
+        GPIO.output(self.g_pin, GPIO.LOW)
+        GPIO.output(self.b_pin, GPIO.LOW)
 
-def green():
-    GPIO.output(RED_PIN, GPIO.LOW)
-    GPIO.output(GREEN_PIN, GPIO.HIGH)
-    GPIO.output(BLUE_PIN, GPIO.LOW)
-    
-def blue():
-    GPIO.output(RED_PIN, GPIO.LOW)
-    GPIO.output(GREEN_PIN, GPIO.LOW)
-    GPIO.output(BLUE_PIN, GPIO.HIGH)
-    
-def yellow():
-    GPIO.output(RED_PIN, GPIO.HIGH)
-    GPIO.output(GREEN_PIN, GPIO.HIGH)
-    GPIO.output(BLUE_PIN, GPIO.LOW)
-    
-def purple():
-    GPIO.output(RED_PIN, GPIO.HIGH)
-    GPIO.output(GREEN_PIN, GPIO.LOW)
-    GPIO.output(BLUE_PIN, GPIO.HIGH)
-    
-def lightBlue():
-    GPIO.output(RED_PIN, GPIO.LOW)
-    GPIO.output(GREEN_PIN, GPIO.HIGH)
-    GPIO.output(BLUE_PIN, GPIO.HIGH)
+    def green(self):
+        GPIO.output(self.r_pin, GPIO.LOW)
+        GPIO.output(self.g_pin, GPIO.HIGH)
+        GPIO.output(self.b_pin, GPIO.LOW)
+        
+    def blue(self):
+        GPIO.output(self.r_pin, GPIO.LOW)
+        GPIO.output(self.g_pin, GPIO.LOW)
+        GPIO.output(self.b_pin, GPIO.HIGH)
+        
+    def yellow(self):
+        GPIO.output(self.r_pin, GPIO.HIGH)
+        GPIO.output(self.g_pin, GPIO.HIGH)
+        GPIO.output(self.b_pin, GPIO.LOW)
+        
+    def purple(self):
+        GPIO.output(self.r_pin, GPIO.HIGH)
+        GPIO.output(self.g_pin, GPIO.LOW)
+        GPIO.output(self.b_pin, GPIO.HIGH)
+        
+    def lightBlue(self):
+        GPIO.output(self.r_pin, GPIO.LOW)
+        GPIO.output(self.g_pin, GPIO.HIGH)
+        GPIO.output(self.b_pin, GPIO.HIGH)
 

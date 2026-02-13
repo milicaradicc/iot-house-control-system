@@ -9,6 +9,7 @@ from components.dht1 import run_bedroom_dht
 from components.dht2 import run_master_bedroom_dht
 from components.ir import run_bedroom_ir
 from components.dpir3 import run_living_room_dpir
+from components.brgb import run_bedroom_rgb
 
 try:
     import RPi.GPIO as GPIO
@@ -55,11 +56,11 @@ if __name__ == "__main__":
     # ir_settings = settings.get('IR', {})
     # run_bedroom_ir(ir_settings, threads, stop_event)
 
-    dpir3_settings = settings.get('DPIR3', {})
-    run_living_room_dpir(dpir3_settings, threads, stop_event)
+    # dpir3_settings = settings.get('DPIR3', {})
+    # run_living_room_dpir(dpir3_settings, threads, stop_event)
 
-    # brgd_settings = settings.get('BRGB', {})
-    # run_bedroom_rgb(brgd_settings, threads, stop_event)
+    brgd_settings = settings.get('BRGB', {})
+    rgb = run_bedroom_rgb(brgd_settings, True)
 
     # lcd_settings = settings.get('LCD', {})
     # run_living_room_lcd(lcd_settings, threads, stop_event)
@@ -74,11 +75,29 @@ if __name__ == "__main__":
             if cmd == "exit":
                 shutdown()
 
-            # elif cmd == "rgb off":
-            #     rgb.off()
+            elif cmd == "white":
+                rgb.white()
 
-            # elif cmd == "led off":
-            #     dl.off()
+            elif cmd == "red":
+                rgb.red()
+
+            elif cmd == "green":
+                rgb.green()
+
+            elif cmd == "blue":
+                rgb.blue()
+
+            elif cmd == "yellow":
+                rgb.yellow()
+
+            elif cmd == "light blue":
+                rgb.lightBlue()
+
+            elif cmd == "purple":
+                rgb.purple()
+
+            elif cmd == "turn off":
+                rgb.turnOff()
 
             # elif cmd == "buzzer on":
             #     db.on()
@@ -88,7 +107,7 @@ if __name__ == "__main__":
                
 
             else:
-                print("Unknown command. Available:  exit")
+                print("Unknown command. Available: turno ff, red, green, blue, purple, yellow, light blue, white,  exit")
 
     except KeyboardInterrupt:
         shutdown()
