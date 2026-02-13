@@ -1,0 +1,50 @@
+{
+  "device": {
+    "device_id": "PI3",
+    "device_name": "BedroomController",
+    "location": "Bedroom"
+  },
+  "influxdb": {
+    "url": "http://192.168.107.175:8086",
+    "token": "uvuZCfj876AuOuMh6upl0nvDZNPsX0m6JB_JwTS_SLW7afZ3Ho-9Y0CS01C6xRkmIjHYCzWn9vR-54BVnKrg6Q==",
+    "org": "ftn",
+    "bucket": "proba5"                  //izmeni ovo
+  },
+  "mqtt": {
+    "broker": "192.168.107.175",
+    "port": 1883,
+    "base_topic": "pi3",            // izmeni ovo
+    "batch_size": 10,
+    "batch_interval": 5,
+    "topics": {
+      "DHT1": {
+        "humidity": "DHT1/humidity",
+        "temperature": "DHT1/temperature"
+        },
+        "DHT2": {
+          "humidity": "DHT2/humidity",
+          "temperature": "DHT2/temperature"
+        }
+                                          //jel ovo okej?
+      }
+  },
+  "flask": {
+    "host": "0.0.0.0",
+    "port": 5000
+  },
+  "DHT1": {
+    "simulated": true,
+    "pin": 17,
+    // "topic": "Humidity",            
+    "runs_on": "PI3",
+    "name": "DHT1 - Bedroom"
+  },
+
+  "DHT2": {
+    "simulated": true,
+    "pin": 18,
+    // "topic": "Humidity",            
+    "runs_on": "PI3",
+    "name": "DHT2 - Master Bedroom"
+  }
+}

@@ -1,8 +1,6 @@
 import time
 import random
 
-import random
-
 def generate_door_state():
     """
     Simulates door sensor state.

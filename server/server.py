@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
-from simulation.settings import load_settings
+from Pi1.settings import load_settings
 import paho.mqtt.client as mqtt
 import json
 import uuid
