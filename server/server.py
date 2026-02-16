@@ -1,43 +1,83 @@
 from flask import Flask, jsonify, request
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
+<<<<<<< Updated upstream
 from simulation.settings import load_settings
+=======
+from settings.settings import load_settings
+>>>>>>> Stashed changes
 import paho.mqtt.client as mqtt
 import json
 import uuid
 import time
 
-#Flask service that uses MQTT protocol and writes to INfluxDB, it enables sending HTTP queries 
+# Flask servis koji koristi MQTT protokol i upisuje u InfluxDB
 app = Flask(__name__)
 
+# Učitavanje podešavanja
 settings = load_settings()
+
+# InfluxDB konfiguracija
 token = settings["influxdb"]["token"]
 org = settings["influxdb"]["org"]
 url = settings["influxdb"]["url"]
 bucket = settings["influxdb"]["bucket"]
 
+# MQTT konfiguracija
 mqtt_host = settings["mqtt"]["broker"]
 mqtt_port = settings["mqtt"]["port"]
-mqtt_topics = settings["mqtt"]["topics"]
+
+# --- DINAMIČKO IZVLAČENJE TOPIKA ---
+def get_all_topics(settings):
+    topics = []
+    # Prolazimo kroz ključeve PI1, PI2, PI3 u JSON-u
+    for pi_key in ["PI1", "PI2", "PI3"]:
+        if pi_key in settings:
+            components = settings[pi_key].get("components", {})
+            for comp_id, comp_data in components.items():
+                if "topic" in comp_data:
+                    topics.append(comp_data["topic"])
+    
+    # Dodajemo i dodatne topike iz "mqtt" sekcije ako su definisani
+    if "mqtt" in settings and "topics" in settings["mqtt"]:
+        for t in settings["mqtt"]["topics"].values():
+            topics.append(t)
+            
+    return list(set(topics)) # Uklanjanje duplikata
+
+all_mqtt_topics = get_all_topics(settings)
+# ----------------------------------
 
 influxdb_client = InfluxDBClient(url=url, token=token, org=org)
 
-# Use callback API version 2 to avoid deprecation warning
-mqtt_client = mqtt.Client(client_id=f"flask_influx_{uuid.uuid4()}", callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
+# Koristimo Callback API v2 za Paho MQTT
+mqtt_client = mqtt.Client(
+    client_id=f"flask_influx_{uuid.uuid4()}", 
+    callback_api_version=mqtt.CallbackAPIVersion.VERSION2
+)
 
 def on_connect(client, userdata, flags, rc, properties=None):
-    print(f"MQTT connected with result code {rc}")
-    for topic in mqtt_topics.values():
-        client.subscribe(topic)
-        print(f"Subscribed to topic: {topic}")
-
+    if rc == 0:
+        print(f"✅ MQTT connected successfully.")
+        for topic in all_mqtt_topics:
+            client.subscribe(topic)
+            print(f"📡 Subscribed to: {topic}")
+        
+        # Subscribe na timer komandne topike
+        client.subscribe("timer/set")
+        client.subscribe("timer/increment")
+        print(f"📡 Subscribed to timer control topics")
+    else:
+        print(f"❌ MQTT connection failed with result code {rc}")
+        
 def on_message(client, userdata, msg):
-    print(f"Received MQTT message on topic: {msg.topic}")
+    print(f"📩 Received MQTT message on topic: {msg.topic}")
     try:
         payload = msg.payload.decode("utf-8")
         try:
             data = json.loads(payload)
         except json.JSONDecodeError:
+            # Ako poruka nije JSON, pravimo fallback strukturu
             data = {
                 "measurement": msg.topic,
                 "value": payload,
@@ -47,46 +87,104 @@ def on_message(client, userdata, msg):
             }
         save_to_influx(data)
     except Exception as e:
-        print(f"Error handling MQTT message: {e}")
+        print(f"⚠️ Error handling MQTT message: {e}")
 
 mqtt_client.on_connect = on_connect
 mqtt_client.on_message = on_message
 
-# Connect with retry logic
+# Logika za povezivanje sa pokušajima (Retry logic)
 max_retries = 5
 retry_delay = 2
 
 for attempt in range(max_retries):
     try:
-        print(f"Attempting to connect to MQTT broker at {mqtt_host}:{mqtt_port} (attempt {attempt + 1}/{max_retries})...")
+        print(f"🔄 Attempting MQTT connect {mqtt_host}:{mqtt_port} ({attempt + 1}/{max_retries})...")
         mqtt_client.connect(mqtt_host, mqtt_port, 60)
         mqtt_client.loop_start()
-        print("Successfully connected to MQTT broker!")
         break
     except Exception as e:
         if attempt < max_retries - 1:
-            print(f"Connection failed: {e}. Retrying in {retry_delay} seconds...")
             time.sleep(retry_delay)
         else:
-            print(f"Failed to connect to MQTT broker after {max_retries} attempts: {e}")
-            raise
+            print(f"🛑 Failed to connect after {max_retries} attempts.")
+            # Ne podižemo exception ovde da bi Flask mogao da se pokrene, 
+            # ali MQTT neće raditi bez brokera.
 
 def save_to_influx(data):
     try:
         write_api = influxdb_client.write_api(write_options=SYNCHRONOUS)
-    
+        
+        # Provera postojanja ključeva pre upisa
         point = (
-        Point(data["measurement"])
-        .tag("measurement", data['measurement'])
-        .tag("simulated", data["simulated"])
-        .tag("runs_on", data["runs_on"])
-        .tag("name", data["name"])
-        .field("value", data["value"])
-    )
+            Point(data.get("measurement", "default_measurement"))
+            .tag("simulated", data.get("simulated", False))
+            .tag("runs_on", data.get("runs_on", "unknown"))
+            .tag("name", data.get("name", "unknown"))
+            .field("value", data.get("value", 0))
+        )
         write_api.write(bucket=bucket, org=org, record=point)
-        print(f"Data written to InfluxDB: {data}")
+        print(f"💾 Written to InfluxDB: {data['measurement']} -> {data['value']}")
     except Exception as e:
-        print(f"Error writing to InfluxDB: {e}")
+        print(f"❌ InfluxDB Write Error: {e}")
+
+# --- API RUTE ---
+
+@app.route('/query', methods=['POST'])
+def query_data():
+    content = request.json
+    query = content.get('query')
+    if not query:
+        return jsonify({"status": "error", "message": "No query provided"}), 400
+    return handle_influx_query(query)
+
+# Dodati u main.py (Flask servis)
+
+@app.route('/timer/set', methods=['POST'])
+def set_timer():
+    """Postavlja vreme na štoperici"""
+    content = request.json
+    seconds = content.get('seconds')
+    
+    if seconds is None:
+        return jsonify({"status": "error", "message": "No seconds provided"}), 400
+    
+    try:
+        # Slanje MQTT komande za postavljanje tajmera
+        mqtt_client.publish(
+            "timer/set",
+            json.dumps({"seconds": int(seconds)}),
+            qos=1
+        )
+        return jsonify({
+            "status": "success", 
+            "message": f"Timer set to {seconds} seconds"
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route('/timer/increment', methods=['POST'])
+def set_timer_increment():
+    """Postavlja broj sekundi koje se dodaju pritiskom na dugme"""
+    content = request.json
+    increment = content.get('increment')
+    
+    if increment is None:
+        return jsonify({"status": "error", "message": "No increment provided"}), 400
+    
+    try:
+        # Slanje MQTT komande za postavljanje incrementa
+        mqtt_client.publish(
+            "timer/increment",
+            json.dumps({"increment": int(increment)}),
+            qos=1
+        )
+        return jsonify({
+            "status": "success", 
+            "message": f"Button increment set to {increment} seconds"
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 def handle_influx_query(query):
     try:
@@ -103,4 +201,5 @@ def handle_influx_query(query):
         return jsonify({"status": "error", "message": str(e)})
 
 if __name__ == "__main__":
+    # use_reloader=False je bitno da se MQTT klijent ne bi startovao dva puta
     app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
