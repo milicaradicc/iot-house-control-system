@@ -4,10 +4,9 @@ import signal
 import sys
 
 from settings.settings import load_settings
-# 12
 from components.ds import run_door_sensor
 from components.dus import run_ultrasonic_door_sensor
-from components.dpir1 import run_motion_sensor
+from components.dpir1 import run_motion_sensor, set_led_instance
 from components.dms import run_door_membrane_switch
 from components.dl import run_door_led
 from components.db import run_door_buzzer
@@ -58,7 +57,7 @@ if __name__ == "__main__":
 
     # DPIR1 – Motion Sensor
     dpir1_settings = settings.get('PI1', {})['components']['DPIR1']
-    run_motion_sensor(dpir1_settings, threads, stop_event)
+    run_motion_sensor(dpir1_settings, threads, stop_event, verbose = True)
 
     # DMS – Door Membrane Switch
     dms_settings = settings.get('PI1', {})['components']['DMS']
@@ -67,6 +66,9 @@ if __name__ == "__main__":
     # DL – LED
     dl_settings = settings.get('PI1', {})['components']['DL']
     dl = run_door_led(dl_settings, True)
+
+    # REGISTRUJ LED za DPIR1 kontrolu
+    set_led_instance(dl)
 
     # DB – Buzzer
     db_settings = settings.get('PI1', {})['components']['DB']
@@ -91,7 +93,6 @@ if __name__ == "__main__":
 
             elif cmd == "buzzer off":
                 db.off()
-               
 
             else:
                 print("Unknown command. Available: led on, led off, buzzer on, buzzer off, exit")

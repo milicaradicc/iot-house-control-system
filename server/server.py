@@ -1,11 +1,7 @@
 from flask import Flask, jsonify, request
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
-<<<<<<< Updated upstream
-from simulation.settings import load_settings
-=======
 from settings.settings import load_settings
->>>>>>> Stashed changes
 import paho.mqtt.client as mqtt
 import json
 import uuid
@@ -61,17 +57,17 @@ def on_connect(client, userdata, flags, rc, properties=None):
         print(f"✅ MQTT connected successfully.")
         for topic in all_mqtt_topics:
             client.subscribe(topic)
-            print(f"📡 Subscribed to: {topic}")
+            print(f"Subscribed to: {topic}")
         
         # Subscribe na timer komandne topike
         client.subscribe("timer/set")
         client.subscribe("timer/increment")
-        print(f"📡 Subscribed to timer control topics")
+        print(f"Subscribed to timer control topics")
     else:
-        print(f"❌ MQTT connection failed with result code {rc}")
+        print(f"MQTT connection failed with result code {rc}")
         
 def on_message(client, userdata, msg):
-    print(f"📩 Received MQTT message on topic: {msg.topic}")
+    print(f"Received MQTT message on topic: {msg.topic}")
     try:
         payload = msg.payload.decode("utf-8")
         try:
@@ -87,7 +83,7 @@ def on_message(client, userdata, msg):
             }
         save_to_influx(data)
     except Exception as e:
-        print(f"⚠️ Error handling MQTT message: {e}")
+        print(f"Error handling MQTT message: {e}")
 
 mqtt_client.on_connect = on_connect
 mqtt_client.on_message = on_message
@@ -98,7 +94,7 @@ retry_delay = 2
 
 for attempt in range(max_retries):
     try:
-        print(f"🔄 Attempting MQTT connect {mqtt_host}:{mqtt_port} ({attempt + 1}/{max_retries})...")
+        print(f"Attempting MQTT connect {mqtt_host}:{mqtt_port} ({attempt + 1}/{max_retries})...")
         mqtt_client.connect(mqtt_host, mqtt_port, 60)
         mqtt_client.loop_start()
         break
@@ -106,7 +102,7 @@ for attempt in range(max_retries):
         if attempt < max_retries - 1:
             time.sleep(retry_delay)
         else:
-            print(f"🛑 Failed to connect after {max_retries} attempts.")
+            print(f"Failed to connect after {max_retries} attempts.")
             # Ne podižemo exception ovde da bi Flask mogao da se pokrene, 
             # ali MQTT neće raditi bez brokera.
 
@@ -125,7 +121,7 @@ def save_to_influx(data):
         write_api.write(bucket=bucket, org=org, record=point)
         print(f"💾 Written to InfluxDB: {data['measurement']} -> {data['value']}")
     except Exception as e:
-        print(f"❌ InfluxDB Write Error: {e}")
+        print(f"InfluxDB Write Error: {e}")
 
 # --- API RUTE ---
 

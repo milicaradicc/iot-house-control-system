@@ -10,6 +10,10 @@ publish_data_counter = 0
 publish_data_limit = 5
 counter_lock = threading.Lock()
 
+# LED kontrola
+led_timer = None
+led_instance = None
+
 def publisher_task(event, dpir_batch):
     global publish_data_counter, publish_data_limit
     while True:
@@ -28,8 +32,24 @@ publisher_thread.daemon = True
 publisher_thread.start()
 
 
-def dpir1_callback(motion_detected, publish_event, dpir_settings, code="DPIR1", verbose = False):
-    global publish_data_counter, publish_data_limit
+def turn_off_led_after_delay():
+    """Timer funkcija koja gasi LED nakon 10 sekundi"""
+    global led_instance
+    time.sleep(10)
+    if led_instance:
+        led_instance.off()
+        print("[DPIR1] LED automatically turned OFF after 10 seconds")
+
+
+def set_led_instance(led):
+    """Postavlja LED instancu za kontrolu iz DPIR1 callback-a"""
+    global led_instance
+    led_instance = led
+    print("[DPIR1] LED instance registered for motion control")
+
+
+def dpir1_callback(motion_detected, publish_event, dpir_settings, code="DPIR1", verbose=False):
+    global publish_data_counter, publish_data_limit, led_timer, led_instance
 
     if verbose:
         t = time.localtime()
@@ -39,23 +59,33 @@ def dpir1_callback(motion_detected, publish_event, dpir_settings, code="DPIR1", 
         print(f"Motion detected: {'YES' if motion_detected else 'NO'}")
         print("="*20)
 
+    # Kontrola LED-a kada je detektovan pokret
+    if motion_detected and led_instance:
+        # Uključi LED
+        led_instance.on()
+        print("[DPIR1] Motion detected! LED turned ON for 10 seconds")
+        
+        # Pokreni novi timer za gašenje nakon 10 sekundi
+        led_timer = threading.Thread(target=turn_off_led_after_delay, daemon=True)
+        led_timer.start()
+
     motion_payload = {
         "measurement": dpir_settings['topic'],
-        "simulated" : dpir_settings['simulated'],
+        "simulated": dpir_settings['simulated'],
         "runs_on": dpir_settings["runs_on"],
         "name": dpir_settings["name"],
         "value": 1 if motion_detected else 0 
     }
 
     with counter_lock:
-        dpir_batch.append((dpir_settings['topic'], json.dumps(motion_payload), 0, True ))
+        dpir_batch.append((dpir_settings['topic'], json.dumps(motion_payload), 0, True))
         publish_data_counter += 1
 
     if publish_data_counter >= publish_data_limit:
         publish_event.set()
 
 
-def run_motion_sensor(settings, threads, stop_event):
+def run_motion_sensor(settings, threads, stop_event, verbose = False):
     code = "DPIR1"
 
     if settings.get('simulated', True):
@@ -63,7 +93,7 @@ def run_motion_sensor(settings, threads, stop_event):
 
         t = threading.Thread(
             target=run_motion_sensor_simulator,
-            args=(dpir1_callback, stop_event, publish_event, settings)    
+            args=(dpir1_callback, stop_event, publish_event, settings, verbose)    
         )
 
         t.start()
@@ -76,7 +106,6 @@ def run_motion_sensor(settings, threads, stop_event):
 
         sensor = DPIR1Sensor(settings['pin'])
 
-        # FIXED: Added publish_event and settings parameters
         t = threading.Thread(
             target=run_dpir1_loop,
             args=(sensor, settings.get('delay', 0.5), dpir1_callback, stop_event, code, publish_event, settings)
