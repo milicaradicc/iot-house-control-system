@@ -1,3 +1,4 @@
+from pi.actuators.db import DoorBuzzer
 from simulators.db import DBSimulator
 from settings.broker_settings import HOSTNAME, PORT
 
@@ -85,4 +86,8 @@ def run_door_buzzer(settings, state=True):
     else:
         pin = settings.get("pin")
         if pin is not None:
-            GPIO.output(pin, GPIO.HIGH if state else GPIO.LOW)
+            def callback_wrapper(value):
+                db_callback(value, publish_event, settings)
+            
+            db_real = DoorBuzzer(pin, callback_wrapper)
+            return db_real

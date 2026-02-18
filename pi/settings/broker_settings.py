@@ -1,3 +1,3 @@
-HOSTNAME = "localhost"
+HOSTNAME = "127.0.0.1"
 # HOSTNAME = "192.168.107.175"
 PORT = 1883
