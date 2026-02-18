@@ -1,7 +1,9 @@
 from simulators.brgb import RGBLedSimulator
+
 from settings.broker_settings import HOSTNAME, PORT
 
 import paho.mqtt.publish as publish
+import paho.mqtt.client as mqtt
 import threading
 import json
 import time
@@ -34,20 +36,38 @@ publisher_thread = threading.Thread(target=publisher_task, args=(publish_event, 
 publisher_thread.daemon = True
 publisher_thread.start()
 
+
+def start_rgb_listener(settings, rgb_instance):
+    def on_message(client, userdata, msg):
+        payload = json.loads(msg.payload.decode("utf-8"))
+        color = payload.get("color")
+
+        if color == "red":
+            rgb_instance.red()
+        elif color == "green":
+            rgb_instance.green()
+        elif color == "blue":
+            rgb_instance.blue()
+        elif color == "white":
+            rgb_instance.white()
+        elif color == "light blue":
+            rgb_instance.lightBlue()
+        elif color == "purple":
+            rgb_instance.purple()
+        elif color == "yellow":
+            rgb_instance.yellow()
+        elif color == "off":
+            rgb_instance.turnOff()
+
+    client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
+    client.on_message = on_message
+    client.connect(HOSTNAME, PORT, 60)
+    client.subscribe("commands/PI3/BRGB")
+    client.loop_start()
+
 def rgb_callback(color, publish_event, rgb_settings, code="RGB"):
     global publish_data_counter, publish_data_limit
     print(color)
-    # mapping = {
-    #     "off": {"R": 0, "G": 0, "B": 0},
-    #     "red": {"R": 1, "G": 0, "B": 0},
-    #     "green": {"R": 0, "G": 1, "B": 0},
-    #     "blue": {"R": 0, "G": 0, "B": 1},
-    #     "white": {"R": 1, "G": 1, "B": 1},
-    #     "yellow": {"R": 1, "G": 1, "B": 0},
-    #     "purple": {"R": 1, "G": 0, "B": 1},
-    #     "lightBlue": {"R": 0, "G": 1, "B": 1},
-    # }
-    # value = mapping.get(color, {"R": 0, "G": 0, "B": 0})
 
     color_payload = {
         "measurement": rgb_settings['topic'],

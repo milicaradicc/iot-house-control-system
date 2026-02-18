@@ -28,10 +28,12 @@ system_state = {
     "is_alarm_active": False,
     "is_system_armed": True,
     "people_count": 0,
+
     "last_ds_readings" : {
         "DS1":"",
         "DS2":""
     },
+
     "last_dus1_distance": 0,
     "last_dus2_distance": 0,
 
@@ -43,7 +45,6 @@ system_state = {
     "dht_names_list": ["Bedroom DHT", "Master Bedroom DHT", "Kitchen DHT"],
     "current_dht_index": 0,
 
-    "ds1_open_time": None,
     "entered_pin":"",
     "pin": "1234"
 }
@@ -205,8 +206,14 @@ def handle_event(data, topic):
 
     #9.
     # uklj isklj preko daljinskog, ali i preko web aplikacije?
-    elif topic == "pi3/ir" and value == 1:
-        pass
+    elif topic == "pi3/ir":
+        ir_color = value
+        if ir_color == "POWER":
+            target = "off"
+        else:
+            target = ir_color
+
+        mqtt_client.publish("commands/PI3/BRGB", json.dumps({"color": target}))
 
 
 def display_dhts():

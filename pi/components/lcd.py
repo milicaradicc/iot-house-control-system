@@ -46,7 +46,6 @@ def start_lcd_listener(settings, lcd_instance):
     client.connect(HOSTNAME, PORT, 60)
     client.subscribe("commands/PI3/LCD")
     client.loop_start()
-    print("📡 LCD Listener started on commands/PI3/LCD")
 
 publish_event = threading.Event()
 publisher_thread = threading.Thread(target=publisher_task, args=(publish_event, lcd_batch))
@@ -83,20 +82,7 @@ def run_living_room_lcd(settings, state=True):
 
         simulator = LCDSimulator(callback_wrapper)
         return simulator
-        # def simulator_loop():
-        #     while True:
-        #         for i in range(1, 4):
-        #             temp = 20 + i
-        #             hum = 50 + i
-        #             text = f"DHT{i}: {temp}C\nHum: {hum}%"
-        #
-        #             print(f"LCD Simulator: {text}")
-        #             lcd_callback(text, settings)
-        #             time.sleep(5)  # Menja prikaz svakih 5 sekundi
 
-        # thread = threading.Thread(target=simulator_loop)
-        # thread.daemon = True
-        # thread.start()
     else:
         from actuators.lcd import LCD
         lcd_hw = LCD()

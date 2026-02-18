@@ -68,7 +68,7 @@ def run_bedroom_ir(settings, threads, stop_event):
         from sensors.ir import run_ir_loop, IR
         print("Starting ir loop")
         ir = IR(settings['pin'])
-        ir_thread = threading.Thread(target=run_ir_loop, args=(ir, 2, ir_callback, stop_event, code))
+        ir_thread = threading.Thread(target=run_ir_loop, args=(ir, 2, ir_callback, stop_event, publish_event, settings))
         ir_thread.start()
         threads.append(ir_thread)
         print("IR loop started")

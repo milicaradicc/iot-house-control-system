@@ -9,7 +9,7 @@ from components.dht1 import run_bedroom_dht
 from components.dht2 import run_master_bedroom_dht
 from components.ir import run_bedroom_ir
 from components.dpir3 import run_living_room_dpir
-from components.brgb import run_bedroom_rgb
+from components.brgb import run_bedroom_rgb, start_rgb_listener
 from components.lcd import run_living_room_lcd
 
 try:
@@ -45,28 +45,29 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
 
-    # DHT1
-    dht1_settings = settings.get('PI3', {})['components']['DHT1']
-    run_bedroom_dht(dht1_settings, threads, stop_event)
+    # # DHT1
+    # dht1_settings = settings.get('PI3', {})['components']['DHT1']
+    # run_bedroom_dht(dht1_settings, threads, stop_event)
+    #
+    # # DHT2
+    # dht2_settings = settings.get('PI3', {})['components']['DHT2']
+    # run_master_bedroom_dht(dht2_settings, threads, stop_event)
 
-    # DHT2
-    dht2_settings = settings.get('PI3', {})['components']['DHT2']
-    run_master_bedroom_dht(dht2_settings, threads, stop_event)
-
-    # ir_settings = settings.get('PI3', {})['components']['IR']
-    # run_bedroom_ir(ir_settings, threads, stop_event)
+    ir_settings = settings.get('PI3', {})['components']['IR']
+    run_bedroom_ir(ir_settings, threads, stop_event)
 
     # dpir3_settings = settings.get('PI3', {})['components']['DPIR3']
     # run_living_room_dpir(dpir3_settings, threads, stop_event)
 
     brgd_settings = settings.get('PI3', {})['components']['BRGB']
     rgb = run_bedroom_rgb(brgd_settings, True)
-
-    lcd_settings = settings.get('PI3', {})['components']['LCD']
-    lcd = run_living_room_lcd(lcd_settings, True)
-
-    from components.lcd import start_lcd_listener
-    start_lcd_listener(lcd_settings, lcd)
+    start_rgb_listener(brgd_settings, rgb)
+    #
+    # lcd_settings = settings.get('PI3', {})['components']['LCD']
+    # lcd = run_living_room_lcd(lcd_settings, True)
+    #
+    # from components.lcd import start_lcd_listener
+    # start_lcd_listener(lcd_settings, lcd)
     
     # MAIN LOOP – kontrola aktuatora
     try:

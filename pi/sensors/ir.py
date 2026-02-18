@@ -9,16 +9,17 @@ class IR:
         self.pin = pin
 
         self.buttons = [
-            0x300ff22dd,  # POWER
+            0x300ff22dd,  # POWER -> "off"
             0x300ffc23d,  # R
             0x300ff629d,  # G
             0x300ffa857,  # B
-            0x300ff9867,  # UP
-            0x300ffb04f   # DOWN
+            0x300ff9867,  # White
+            0x300ffb04f,  # Yellow
+            0x300ff02fd,  # Purple
+            0x300ffc23f  # Light Blue
         ]
 
-        self.button_names = ["POWER", "R", "G", "B", "UP", "DOWN"]
-
+        self.button_names = ["off", "red", "green", "blue", "white", "yellow", "purple", "light blue"]
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.pin, GPIO.IN)
 
@@ -81,19 +82,23 @@ class IR:
 
         return None
 
-def run_ir_loop(ir, delay, callback, stop_event: Event, code):
+
+def run_ir_loop(ir, delay, callback, stop_event: Event, publish_event, settings):
+
     try:
         last_command = None
-        
-        
+
         while not stop_event.is_set():
             command = ir.read_button()
-            
-            if command != last_command :
-                callback(command)
+
+            if command and command != last_command:
+                callback(command, publish_event, settings)
                 last_command = command
+
+            if command is None:
+                last_command = None
 
             time.sleep(delay)
 
     finally:
-        GPIO.cleanup(ir.pin)
+        print("Stopping IR loop...")
