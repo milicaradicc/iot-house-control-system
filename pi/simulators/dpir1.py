@@ -9,7 +9,7 @@ def generate_motion_state():
     True  -> motion detected
     False -> no motion
     """
-    return random.choice([True, False])
+    return random.choice([True, False, False, False, False, False, False, False, False])
 
 import time
 

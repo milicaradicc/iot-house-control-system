@@ -2,6 +2,7 @@ from simulators.dl import DLSimulator
 from settings.broker_settings import HOSTNAME, PORT
 
 import paho.mqtt.publish as publish
+import paho.mqtt.client as mqtt
 import threading
 import json
 import time
@@ -28,6 +29,23 @@ def publisher_task(event, dl_batch):
         publish.multiple(local_dl_batch, hostname=HOSTNAME, port=PORT)
         print(f'published {publish_data_limit} LED values')
         event.clear()
+
+
+
+def start_dl_listener(dl_settings, dl_instance):
+    def on_message(client, userdata, msg):
+        payload = json.loads(msg.payload.decode("utf-8"))
+        if payload.get("value") is True:
+            dl_instance.on()
+        else:
+            dl_instance.off()
+
+    client = mqtt.Client()
+    client.on_message = on_message
+    client.connect(HOSTNAME, PORT, 60)
+
+    client.subscribe("commands/PI1/DL")
+    client.loop_start()
 
 
 publish_event = threading.Event()

@@ -103,7 +103,7 @@ def on_message(client, userdata, msg):
             }
 
         save_to_influx(data)
-        handle_event(data)
+        handle_event(data, msg.topic)
 
 
     except Exception as e:
@@ -147,33 +147,31 @@ def save_to_influx(data):
     except Exception as e:
         print(f"❌ InfluxDB Write Error: {e}")
 
-def handle_event(data):
+def handle_event(data, topic):
     value = data.get("value")
     name = data.get("name")
-    print("upao")
-    print(name)
-    if name == "pi1/dpir1"  and value == 1:
+    if topic == "pi1/dpir1"  and value == 1:
 
         if system_state["last_dus1_distance"] < 60:
             system_state["people_count"] += 1
             system_state["last_dus1_distance"] = value
             mqtt_client.publish("commands/PI1/DL", json.dumps({"value": True}))
             Timer(10, lambda: mqtt_client.publish("commands/PI1/DL", json.dumps({"value": False}))).start()
-            # print(system_state)
+            print(system_state)
 
         #ako nema nikoga u prostoriji detektovanje pokreta na nekom rpir pali alarm
-        elif name in ["dpir1", "dpir2", "dpir2"] and value == 1 and system_state["people_count"] == 0:
+        elif topic in ["pi1/dpir1", "pi2/dpir2", "pi3/dpir3"] and value == 1 and system_state["people_count"] == 0:
             activate_alarm()
 
         # prikazivati temperature tako da se smenjuju ispisi na par sekundi
 
-        elif name in ["dht1", "dht2", "dht3"] and value == 1 :
+        elif topic in ["pi3/dht1", "pi3/dht2", "pi2/dht3"] and value == 1 :
             system_state["last_dht_readings"][name] = value
             print(system_state["last_dht_readings"])
             pass
 
         # uklj isklj preko daljinskog, ali i preko web aplikacije?
-        elif name == "IR" and value == 1:
+        elif topic == "IR" and value == 1:
             pass
 
 

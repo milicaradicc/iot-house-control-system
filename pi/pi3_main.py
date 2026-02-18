@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     # DHT2
     dht2_settings = settings.get('PI3', {})['components']['DHT2']
-    run_master_bedroom_dht(dht1_settings, threads, stop_event)
+    run_master_bedroom_dht(dht2_settings, threads, stop_event)
 
     # ir_settings = settings.get('PI3', {})['components']['IR']
     # run_bedroom_ir(ir_settings, threads, stop_event)

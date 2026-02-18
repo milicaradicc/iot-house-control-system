@@ -47,30 +47,32 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
 
-    # DS1 – Door Sensor
-    ds1_settings = settings.get('PI1', {})['components']['DS1']
-    print(ds1_settings)
-    run_door_sensor(ds1_settings, threads, stop_event)
-
-    # DUS1 – Ultrasonic Sensor
-    dus1_settings = settings.get('PI1', {})['components']['DUS1']
-    run_ultrasonic_door_sensor(dus1_settings, threads, stop_event)
+    # # DS1 – Door Sensor
+    # ds1_settings = settings.get('PI1', {})['components']['DS1']
+    # print(ds1_settings)
+    # run_door_sensor(ds1_settings, threads, stop_event)
+    #
+    # # DUS1 – Ultrasonic Sensor
+    # dus1_settings = settings.get('PI1', {})['components']['DUS1']
+    # run_ultrasonic_door_sensor(dus1_settings, threads, stop_event)
 
     # DPIR1 – Motion Sensor
     dpir1_settings = settings.get('PI1', {})['components']['DPIR1']
     run_motion_sensor(dpir1_settings, threads, stop_event)
 
-    # DMS – Door Membrane Switch
-    dms_settings = settings.get('PI1', {})['components']['DMS']
-    run_door_membrane_switch(dms_settings, threads, stop_event)
-
+    # # DMS – Door Membrane Switch
+    # dms_settings = settings.get('PI1', {})['components']['DMS']
+    # run_door_membrane_switch(dms_settings, threads, stop_event)
+    #
     # DL – LED
     dl_settings = settings.get('PI1', {})['components']['DL']
     dl = run_door_led(dl_settings, True)
+    from components.dl import start_dl_listener
+    start_dl_listener(dl_settings, dl)
 
-    # DB – Buzzer
-    db_settings = settings.get('PI1', {})['components']['DB']
-    db = run_door_buzzer(db_settings, True)
+    # # DB – Buzzer
+    # db_settings = settings.get('PI1', {})['components']['DB']
+    # db = run_door_buzzer(db_settings, True)
 
     # MAIN LOOP – kontrola aktuatora
     try:
