@@ -7,7 +7,7 @@ from simulators.dms import run_door_membrane_switch_simulator
 
 dms_batch = []
 publish_data_counter = 0
-publish_data_limit = 5
+publish_data_limit = 4
 counter_lock = threading.Lock()
 
 def publisher_task(event, dms_batch):

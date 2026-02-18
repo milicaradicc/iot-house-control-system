@@ -26,9 +26,12 @@ mqtt_port = settings["mqtt"]["port"]
 
 system_state = {
     "is_alarm_active": False,
-    "is_system_armed": False,
+    "is_system_armed": True,
     "people_count": 0,
-
+    "last_ds_readings" : {
+        "DS1":"",
+        "DS2":""
+    },
     "last_dus1_distance": 0,
     "last_dus2_distance": 0,
     "last_dht_readings": {
@@ -37,6 +40,7 @@ system_state = {
         "DHT3": ""
     },
     "ds1_open_time": None,
+    "entered_pin":"",
     "pin": "1234"
 }
 
@@ -150,38 +154,66 @@ def save_to_influx(data):
 def handle_event(data, topic):
     value = data.get("value")
     name = data.get("name")
-    if topic == "pi1/dpir1"  and value == 1:
 
+    #1.
+    if topic == "pi1/dpir1"  and value == 1:
         if system_state["last_dus1_distance"] < 60:
             system_state["people_count"] += 1
             system_state["last_dus1_distance"] = value
             mqtt_client.publish("commands/PI1/DL", json.dumps({"value": True}))
             Timer(10, lambda: mqtt_client.publish("commands/PI1/DL", json.dumps({"value": False}))).start()
-            print(system_state)
 
-        #ako nema nikoga u prostoriji detektovanje pokreta na nekom rpir pali alarm
-        elif topic in ["pi1/dpir1", "pi2/dpir2", "pi3/dpir3"] and value == 1 and system_state["people_count"] == 0:
-            activate_alarm()
+    #4.
+    elif topic == "pi1/ds1":
+        system_state["last_ds_readings"]["DS1"] = value
+        if value == 1 and system_state["is_system_armed"]:
+            Timer(10, check_alarm_after_delay).start()
 
-        # prikazivati temperature tako da se smenjuju ispisi na par sekundi
+    elif topic == "pi2/ds2":
+        system_state["last_ds_readings"]["DS2"] = value
+        if value == 1 and system_state["is_system_armed"]:
+            Timer(10, check_alarm_after_delay).start()
 
-        elif topic in ["pi3/dht1", "pi3/dht2", "pi2/dht3"] and value == 1 :
-            system_state["last_dht_readings"][name] = value
-            print(system_state["last_dht_readings"])
-            pass
+    elif topic == "pi1/dms":
+        system_state["entered_pin"] += value
+        if len(system_state['entered_pin']) == 4:           # mozda dodati proveru ako je proslo vise od 10 sekundi od unosa poslednjeg ponistiti pin
+            manage_alarm_system()
+            system_state["entered_pin"] = ""
 
-        # uklj isklj preko daljinskog, ali i preko web aplikacije?
-        elif topic == "IR" and value == 1:
-            pass
+    #5.
+    #ako nema nikoga u prostoriji detektovanje pokreta na nekom rpir pali alarm ako je sistem aktiviran i alarm ugasen
+    elif topic in ["pi1/dpir1", "pi2/dpir2", "pi3/dpir3"] and value == 1 and system_state["people_count"] == 0:
+        activate_alarm()
+
+    # prikazivati temperature tako da se smenjuju ispisi na par sekundi
+    #7.
+    elif topic in ["pi3/dht1", "pi3/dht2", "pi2/dht3"]:
+        system_state["last_dht_readings"][name] = value
+        print(system_state["last_dht_readings"])
+        pass
+
+    #9.
+    # uklj isklj preko daljinskog, ali i preko web aplikacije?
+    elif topic == "IR" and value == 1:
+        pass
 
 
+def manage_alarm_system():
+    if not system_state['is_system_armed']  and correct_pin():
+        Timer(10, arm_system).start()
 
+    if system_state['is_system_armed'] and system_state['is_alarm_active'] and correct_pin():
+        system_state['is_system_armed'] = False
+        deactivate_alarm()
+
+
+def correct_pin():
+    return system_state['pin'] == system_state['entered_pin']
 
 def activate_alarm():
     if not system_state["is_alarm_active"]:
         system_state["is_alarm_active"] = True
         mqtt_client.publish("commands/PI1/DB", json.dumps({"value": True}))     # upali db
-        print("🚨 ALARM AKTIVIRAN!")
 
         #poslati u influx
         #obavesti korisnika na aplikaciji
@@ -189,9 +221,15 @@ def activate_alarm():
 def deactivate_alarm():
     if system_state["is_alarm_active"]:
         system_state["is_alarm_active"] = False
-        mqtt_client.publish("commands/PI1/DB", json.dumps({"value": False}))     # ugasi db
-        print("🚨 ALARM DEAKTIVIRAN!")
+        mqtt_client.publish("commands/PI1/DB", json.dumps({"value": False}))
 
+def arm_system():
+    system_state['is_system_armed'] = True
+
+def check_alarm_after_delay():
+    # Ako je nakon 10s sistem i dalje ARMED, a niko nije ugasio alarm PIN-om
+    if system_state['is_system_armed'] and not system_state['is_alarm_active']:
+        activate_alarm()
 
 # --- API RUTE ---
 

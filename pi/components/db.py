@@ -2,6 +2,7 @@ from simulators.db import DBSimulator
 from settings.broker_settings import HOSTNAME, PORT
 
 import paho.mqtt.publish as publish
+import paho.mqtt.client as mqtt
 import threading
 import json
 import time
@@ -29,6 +30,19 @@ def publisher_task(event, db_batch):
         print(f'published {publish_data_limit} DB values')
         event.clear()
 
+def start_db_listener(db_settings, db_instance):
+    def on_message(client, userdata, msg):
+        payload = json.loads(msg.payload.decode("utf-8"))
+        if payload.get("value") is True:
+            db_instance.on()
+        else:
+            db_instance.off()
+
+    client = mqtt.Client()
+    client.on_message = on_message
+    client.connect(HOSTNAME, PORT, 60)
+    client.subscribe("commands/PI1/DB")
+    client.loop_start()
 
 publish_event = threading.Event()
 publisher_thread = threading.Thread(target=publisher_task, args=(publish_event, db_batch))
