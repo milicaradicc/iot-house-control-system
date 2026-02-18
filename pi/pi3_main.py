@@ -59,13 +59,14 @@ if __name__ == "__main__":
     # dpir3_settings = settings.get('PI3', {})['components']['DPIR3']
     # run_living_room_dpir(dpir3_settings, threads, stop_event)
 
-    # brgd_settings = settings.get('PI3', {})['components']['BRGB']
-    # rgb = run_bedroom_rgb(brgd_settings, True)
+    brgd_settings = settings.get('PI3', {})['components']['BRGB']
+    rgb = run_bedroom_rgb(brgd_settings, True)
 
-    # lcd_settings = settings.get('PI3', {})['components']['LCD']
-    # lcd = run_living_room_lcd(lcd_settings, threads, stop_event)
+    lcd_settings = settings.get('PI3', {})['components']['LCD']
+    lcd = run_living_room_lcd(lcd_settings, True)
 
-
+    from components.lcd import start_lcd_listener
+    start_lcd_listener(lcd_settings, lcd)
     
     # MAIN LOOP – kontrola aktuatora
     try:

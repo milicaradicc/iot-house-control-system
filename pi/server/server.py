@@ -34,11 +34,15 @@ system_state = {
     },
     "last_dus1_distance": 0,
     "last_dus2_distance": 0,
+
     "last_dht_readings": {
-        "DHT1": "",
-        "DHT2": "",
-        "DHT3": ""
+        "Bedroom DHT": {"temp": 0, "hum": 0},           # dht1
+        "Master Bedroom DHT": {"temp": 0, "hum": 0},    # dht2
+        "Kitchen DHT": {"temp": 0, "hum": 0}            # dth3
     },
+    "dht_names_list": ["Bedroom DHT", "Master Bedroom DHT", "Kitchen DHT"],
+    "current_dht_index": 0,
+
     "ds1_open_time": None,
     "entered_pin":"",
     "pin": "1234"
@@ -182,21 +186,46 @@ def handle_event(data, topic):
 
     #5.
     #ako nema nikoga u prostoriji detektovanje pokreta na nekom rpir pali alarm ako je sistem aktiviran i alarm ugasen
-    elif topic in ["pi1/dpir1", "pi2/dpir2", "pi3/dpir3"] and value == 1 and system_state["people_count"] == 0:
+    elif topic in ["pi1/dpir1", "pi2/dpir2", "pi3/dpir3"] and value == 1 and system_state["people_count"] == 0 and system_state['is_system_armed']:
         activate_alarm()
 
     # prikazivati temperature tako da se smenjuju ispisi na par sekundi
     #7.
     elif topic in ["pi3/dht1", "pi3/dht2", "pi2/dht3"]:
-        system_state["last_dht_readings"][name] = value
-        print(system_state["last_dht_readings"])
-        pass
+        measurement = data.get("measurement")
+        value = data.get("value")
+        name = data.get("name")
+
+        if measurement == "Temperature":
+            system_state["last_dht_readings"][name]["temp"] = value
+
+        elif measurement == "Humidity":
+            system_state["last_dht_readings"][name]["hum"] = value
+
 
     #9.
     # uklj isklj preko daljinskog, ali i preko web aplikacije?
-    elif topic == "IR" and value == 1:
+    elif topic == "pi3/ir" and value == 1:
         pass
 
+
+def display_dhts():
+    idx = system_state["current_dht_index"]
+    dht_name = system_state["dht_names_list"][idx]
+    readings = system_state["last_dht_readings"][dht_name]
+
+    line1 = f"{dht_name[:16]}"
+    line2 = f"T:{readings['temp']}°C H:{readings['hum']}%"
+
+    payload = {
+        "line1": line1,
+        "line2": line2
+    }
+
+    mqtt_client.publish("commands/PI3/LCD", json.dumps(payload))
+    system_state["current_dht_index"] = (idx + 1) % len(system_state["dht_names_list"])
+
+    Timer(10, display_dhts).start()
 
 def manage_alarm_system():
     if not system_state['is_system_armed']  and correct_pin():
@@ -205,7 +234,6 @@ def manage_alarm_system():
     if system_state['is_system_armed'] and system_state['is_alarm_active'] and correct_pin():
         system_state['is_system_armed'] = False
         deactivate_alarm()
-
 
 def correct_pin():
     return system_state['pin'] == system_state['entered_pin']
@@ -306,4 +334,6 @@ def handle_influx_query(query):
 
 if __name__ == "__main__":
     # use_reloader=False je bitno da se MQTT klijent ne bi startovao dva puta
+
+    display_dhts()
     app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
