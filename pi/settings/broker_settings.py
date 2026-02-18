@@ -1,0 +1,3 @@
+HOSTNAME = "localhost"
+# HOSTNAME = "192.168.107.175"
+PORT = 1883
