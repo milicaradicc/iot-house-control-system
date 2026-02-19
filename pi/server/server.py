@@ -25,6 +25,7 @@ mqtt_port = settings["mqtt"]["port"]
 DUS_HISTORY_WINDOW = 5
 ENTRY_DISTANCE_THRESHOLD = 60
 MOTION_COOLDOWN = 10
+DOOR_OPEN_ALARM_DELAY = 5  # seconds before alarm triggers for open door
 
 system_state = {
     "is_alarm_active": False,
@@ -47,6 +48,16 @@ system_state = {
     "last_ds_readings": {
         "DS1": "",
         "DS2": ""
+    },
+
+    "ds_open_since": {
+        "DS1": None,
+        "DS2": None
+    },
+
+    "ds_alarm_active": {
+        "DS1": False,
+        "DS2": False
     },
 
     "last_dht_readings": {
@@ -153,7 +164,7 @@ def save_to_influx(data):
         print(f"❌ InfluxDB Write Error: {e}")
 
 
-# --- DUS ISTORIJA ---
+# --- DUS HISTORY ---
 
 def update_dus_history(dus_key, distance):
     now = time.time()
@@ -188,12 +199,14 @@ def determine_entry_or_exit(dus_key):
     return min_distance < ENTRY_DISTANCE_THRESHOLD
 
 
+# --- MOTION HANDLING ---
+
 def handle_motion_event(dpir_topic, dus_key):
     now = time.time()
     last = system_state["last_motion_event"][dus_key]
 
     if now - last < MOTION_COOLDOWN:
-        print(f"[{dpir_topic}] ⏳ Cooldown aktivan, preskačem event")
+        print(f"[{dpir_topic}] ⏳ Cooldown active, skipping event")
         return None
 
     is_entering = determine_entry_or_exit(dus_key)
@@ -216,8 +229,7 @@ def handle_motion_event(dpir_topic, dus_key):
         print(f"👥 People in building: {system_state['people_count']}")
 
     mqtt_client.publish("/entries", json.dumps({"people_count": system_state["people_count"]}))
-    
-    # Direktno upiši u InfluxDB
+
     save_to_influx({
         "measurement": "entries",
         "simulated": True,
@@ -229,6 +241,28 @@ def handle_motion_event(dpir_topic, dus_key):
     return is_entering
 
 
+# --- DOOR SENSOR ALARM LOGIC ---
+
+def check_ds_alarm(ds_key):
+    """Check if door is still open after delay and trigger alarm."""
+    open_since = system_state["ds_open_since"][ds_key]
+
+    # Door was closed in the meantime
+    if open_since is None:
+        return
+
+    # Door still open after threshold
+    if time.time() - open_since >= DOOR_OPEN_ALARM_DELAY:
+        print(f"[{ds_key}] 🚪 Door open for more than {DOOR_OPEN_ALARM_DELAY}s → ALARM")
+        system_state["ds_alarm_active"][ds_key] = True
+        activate_alarm()
+
+
+def any_ds_alarm_active():
+    """Returns True if any door sensor alarm is still active."""
+    return any(system_state["ds_alarm_active"].values())
+
+
 # --- EVENT HANDLER ---
 
 def handle_event(data, topic):
@@ -237,7 +271,7 @@ def handle_event(data, topic):
 
     print(f"[DEBUG] topic: '{topic}' | value: {value}")
 
-    # DUS istorija
+    # DUS history
     if topic == "pi1/dus1":
         update_dus_history("DUS1", value)
         system_state["last_dus1_distance"] = value
@@ -246,7 +280,7 @@ def handle_event(data, topic):
         update_dus_history("DUS2", value)
         system_state["last_dus2_distance"] = value
 
-    # DPIR detekcija pokreta
+    # DPIR motion detection
     elif topic == "pi1/dpir1" and value == 1:
         entered = handle_motion_event("pi1/dpir1", "DUS1")
         if entered is False and system_state["people_count"] == 0 and system_state["is_system_armed"]:
@@ -261,25 +295,52 @@ def handle_event(data, topic):
         if system_state["people_count"] == 0 and system_state["is_system_armed"]:
             activate_alarm()
 
-    # DS senzori
+    # Door sensors
     elif topic == "pi1/ds1":
         system_state["last_ds_readings"]["DS1"] = value
-        if value == 1 and system_state["is_system_armed"]:
-            Timer(10, check_alarm_after_delay).start()
+
+        if value == 1:
+            # Door opened
+            if system_state["ds_open_since"]["DS1"] is None:
+                system_state["ds_open_since"]["DS1"] = time.time()
+                print(f"[DS1] 🚪 Door opened — waiting {DOOR_OPEN_ALARM_DELAY}s...")
+                Timer(DOOR_OPEN_ALARM_DELAY, lambda: check_ds_alarm("DS1")).start()
+        else:
+            # Door closed
+            system_state["ds_open_since"]["DS1"] = None
+            if system_state["ds_alarm_active"]["DS1"]:
+                system_state["ds_alarm_active"]["DS1"] = False
+                print("[DS1] 🚪 Door closed")
+                # Only deactivate alarm if no other door alarms are active
+                if not any_ds_alarm_active():
+                    deactivate_alarm()
 
     elif topic == "pi2/ds2":
         system_state["last_ds_readings"]["DS2"] = value
-        if value == 1 and system_state["is_system_armed"]:
-            Timer(10, check_alarm_after_delay).start()
 
-    # Membrane switch – unos PIN-a
+        if value == 1:
+            # Door opened
+            if system_state["ds_open_since"]["DS2"] is None:
+                system_state["ds_open_since"]["DS2"] = time.time()
+                print(f"[DS2] 🚪 Door opened — waiting {DOOR_OPEN_ALARM_DELAY}s...")
+                Timer(DOOR_OPEN_ALARM_DELAY, lambda: check_ds_alarm("DS2")).start()
+        else:
+            # Door closed
+            system_state["ds_open_since"]["DS2"] = None
+            if system_state["ds_alarm_active"]["DS2"]:
+                system_state["ds_alarm_active"]["DS2"] = False
+                print("[DS2] 🚪 Door closed")
+                if not any_ds_alarm_active():
+                    deactivate_alarm()
+
+    # Membrane switch - PIN entry
     elif topic == "pi1/dms":
         system_state["entered_pin"] += str(value)
         if len(system_state["entered_pin"]) == 4:
             manage_alarm_system()
             system_state["entered_pin"] = ""
 
-    # DHT temperatura i vlažnost
+    # DHT temperature and humidity
     elif topic in ["pi3/dht1", "pi3/dht2", "pi2/dht3"]:
         measurement = data.get("measurement")
         name = data.get("name")
@@ -288,13 +349,13 @@ def handle_event(data, topic):
         elif measurement == "Humidity":
             system_state["last_dht_readings"][name]["hum"] = value
 
-    # IR daljinski → RGB
+    # IR remote → RGB
     elif topic == "pi3/ir":
         target = "off" if value == "POWER" else value
         mqtt_client.publish("commands/PI3/BRGB", json.dumps({"color": target}))
 
 
-# --- ALARM LOGIKA ---
+# --- ALARM LOGIC ---
 
 def activate_alarm():
     if not system_state["is_alarm_active"]:
@@ -350,7 +411,7 @@ def display_dhts():
     Timer(10, display_dhts).start()
 
 
-# --- API RUTE ---
+# --- API ROUTES ---
 
 @app.route('/query', methods=['POST'])
 def query_data():
