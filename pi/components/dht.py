@@ -41,7 +41,7 @@ def dht_callback(humidity, temperature, publish_event, dht_settings, code="DHT1"
         print(f"Temperature: {temperature} °C")
 
     humidity_payload = {
-        "measurement": "Humidity",
+        "measurement": dht_settings['topic']+'temp',
         "simulated": dht_settings['simulated'],
         "runs_on": dht_settings["runs_on"],
         "name": dht_settings["name"],
@@ -49,7 +49,7 @@ def dht_callback(humidity, temperature, publish_event, dht_settings, code="DHT1"
     }
 
     temperature_payload = {
-        "measurement": "Temperature",
+        "measurement": dht_settings['topic']+'humidity',
         "simulated": dht_settings['simulated'],
         "runs_on": dht_settings["runs_on"],
         "name": dht_settings["name"],
@@ -57,10 +57,10 @@ def dht_callback(humidity, temperature, publish_event, dht_settings, code="DHT1"
     }
 
     with counter_lock:
-        dht_batch.append((dht_settings['topic'], json.dumps(humidity_payload), 0, True))
+        dht_batch.append((dht_settings['topic']+'temp', json.dumps(humidity_payload), 0, True))
         publish_data_counter += 1
 
-        dht_batch.append((dht_settings['topic'], json.dumps(temperature_payload), 0, True))
+        dht_batch.append((dht_settings['topic']+'humidity', json.dumps(temperature_payload), 0, True))
         publish_data_counter += 1
 
     if publish_data_counter >= publish_data_limit:
