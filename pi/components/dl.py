@@ -1,3 +1,4 @@
+from pi.actuators.dl import DoorLight
 from simulators.dl import DLSimulator
 from settings.broker_settings import HOSTNAME, PORT
 
@@ -82,18 +83,18 @@ def dl_callback(value, publish_event, dl_settings, code="DL"):
 
 
 def run_door_led(settings, state=True):
-    if settings.get("simulated", True) or GPIO is None:
-        # 1. Kreiramo helper funkciju koja "zatvara" (captures) settings i publish_event
-        def callback_wrapper(value):
-            # 2. Kada simulator pozove callback_wrapper SA value parametrom,
-            #    mi prosleđujemo tu vrednost dalje u dl_callback
-            dl_callback(value, publish_event, settings)
-        
-        # 3. Dajemo wrapperu simulatoru
-        simulator = DLSimulator(callback_wrapper)
+    def callback_wrapper(value):
+        dl_callback(value, publish_event, settings)
 
+    if settings.get("simulated", True) or GPIO is None:
+        simulator = DLSimulator(callback_wrapper)
         return simulator
     else:
         pin = settings.get("pin")
-        if pin is not None:
-            GPIO.output(pin, GPIO.HIGH if state else GPIO.LOW)
+        if pin is None:
+            raise ValueError("DL hardware mode zahtijeva 'pin' u settings")
+        hardware = DoorLight(pin, callback_wrapper)
+        # Postavi inicijalno stanje
+        if state:
+            hardware.on()
+        return hardware
