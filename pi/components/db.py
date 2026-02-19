@@ -1,4 +1,4 @@
-from pi.actuators.db import DoorBuzzer
+from actuators.db import DoorBuzzer
 from simulators.db import DBSimulator
 from settings.broker_settings import HOSTNAME, PORT
 

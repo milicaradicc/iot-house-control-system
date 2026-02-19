@@ -1,20 +1,25 @@
 import time
 import random
 
-import random
-
-def generate_motion_state():
+def run_motion_sensor_simulator(callback, stop_event, publish_event, settings, delay=1):
     """
-    Simulates motion sensor state.
-    True  -> motion detected
-    False -> no motion
+    Simulira detekciju pokreta u ciklusima.
+    Pokret se detektuje samo u određenim intervalima, ne konstantno.
     """
-    return random.choice([True, False, False, False, False, False, False, False, False])
-
-import time
-
-def run_motion_sensor_simulator(callback, stop_event, publish_event, settings, delay=2):
     while not stop_event.is_set():
-        motion_detected = generate_motion_state()
-        callback(motion_detected, publish_event, settings)
-        time.sleep(delay)
+        # Faza mirovanja - nema pokreta
+        idle_count = random.randint(8, 15)
+        for _ in range(idle_count):
+            if stop_event.is_set():
+                return
+            callback(False, publish_event, settings)
+            time.sleep(delay)
+
+        # Faza pokreta - osoba prolazi (3-5 sekundi)
+        motion_count = random.randint(3, 5)
+        print(f"[DPIR SIM] Motion detected for {motion_count} readings")
+        for _ in range(motion_count):
+            if stop_event.is_set():
+                return
+            callback(True, publish_event, settings)
+            time.sleep(delay)

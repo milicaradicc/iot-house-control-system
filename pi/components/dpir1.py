@@ -55,8 +55,7 @@ def dpir1_callback(motion_detected, publish_event, dpir_settings, code="DPIR", v
         publish_event.set()
 
 
-def run_motion_sensor(settings, threads, stop_event):
-    code = "DPIR1"
+def run_motion_sensor(settings, threads, stop_event, code = "DPIR"):
 
     if settings.get('simulated', True):
         print("Starting DPIR1 simulator")

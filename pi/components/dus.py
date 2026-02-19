@@ -1,4 +1,3 @@
-# from simulators.dus import run_ultrasonic_door_sensor_simulator
 import threading
 import time
 import json
@@ -57,7 +56,7 @@ def run_ultrasonic_door_sensor(settings, threads, stop_event, code):
     if settings['simulated']:
         from simulators.dus import run_ultrasonic_door_sensor_simulator
         print("Starting dus1 simulator...")
-        dus1_thread = threading.Thread(target= run_ultrasonic_door_sensor_simulator, args=(2, dus_callback, stop_event, publish_event, settings, code))
+        dus1_thread = threading.Thread(target= run_ultrasonic_door_sensor_simulator, args=(2, dus_callback, stop_event, publish_event, settings))
         dus1_thread.start()
         threads.append(dus1_thread)
         print("DUS1 simulator started!")

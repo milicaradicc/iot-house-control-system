@@ -57,7 +57,7 @@ if __name__ == "__main__":
     
     # DUS2 – Ultrasonic Sensor
     dus2_settings = settings.get('PI2', {})['components']['DUS2']
-    run_ultrasonic_door_sensor(dus2_settings, threads, stop_event)
+    run_ultrasonic_door_sensor(dus2_settings, threads, stop_event, "DUS2")
     
     # DPIR2 – Motion Sensor
     dpir2_settings = settings.get('PI2', {})['components']['DPIR2']
