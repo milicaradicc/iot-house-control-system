@@ -21,7 +21,14 @@ const GRAFANA_PANELS = {
   btn: `http://127.0.0.1:3001/d-solo/ad4btn7/odbrana?orgId=1&panelId=11&from=now-6h&to=now&theme=dark`,
   dht3: `http://127.0.0.1:3001/d-solo/ad4btn7/odbrana?orgId=1&panelId=14&from=now-6h&to=now&theme=dark`,
   gsg: `http://127.0.0.1:3001/d-solo/ad4btn7/odbrana?orgId=1&panelId=12&from=now-6h&to=now&theme=dark`,
-
+  
+  // pi3
+  brgb: "http://127.0.0.1:3001/d-solo/ad4btn7/odbrana?orgId=1&panelId=15&from=now-6h&to=now&theme=dark",
+  dht1: "http://127.0.0.1:3001/d-solo/ad4btn7/odbrana?orgId=1&panelId=20&from=now-6h&to=now&theme=dark",
+  dht2: `http://127.0.0.1:3001/d-solo/ad4btn7/odbrana?orgId=1&panelId=17&from=now-6h&to=now&theme=dark`,
+  ir: `http://127.0.0.1:3001/d-solo/ad4btn7/odbrana?orgId=1&panelId=18&from=now-6h&to=now&theme=dark`,
+  lcd: `http://127.0.0.1:3001/d-solo/ad4btn7/odbrana?orgId=1&panelId=19&from=now-6h&to=now&theme=dark`,
+  dpir3: `http://127.0.0.1:3001/d-solo/ad4btn7/odbrana?orgId=1&panelId=16&from=now-6h&to=now&theme=dark`,
 };
 
 // ── Hooks ────────────────────────────────────────────────────────────────────
@@ -796,7 +803,13 @@ export default function SmartHomeDashboard() {
             <Card><GrafanaPanel src={GRAFANA_PANELS.gsg} title="Kitchen Button (BTN)" height={250} /></Card>
             <Card><GrafanaPanel src={GRAFANA_PANELS.sd} title="Kitchen 4 Digit 7 Segment Display Timer (4SD)" height={250} /></Card>
             <Card><GrafanaPanel src={GRAFANA_PANELS.dht3} title="Kitchen Digital Humidity and Temperature Sensor (DHT3)" height={250} /></Card>
-            
+                        
+            <Card><GrafanaPanel src={GRAFANA_PANELS.brgb} title="Bedroom RGB (BRGB)" height={250} /></Card>
+            <Card><GrafanaPanel src={GRAFANA_PANELS.dht1} title="Master Bedroom DHT" height={250} /></Card>
+            <Card><GrafanaPanel src={GRAFANA_PANELS.dht2} title="Door Sensor (DS2)" height={250} /></Card>
+            <Card><GrafanaPanel src={GRAFANA_PANELS.ir} title="Bedroom Infrared (IR)" height={250} /></Card>
+            <Card><GrafanaPanel src={GRAFANA_PANELS.lcd} title="Kitchen Button (BTN)" height={250} /></Card>
+            <Card><GrafanaPanel src={GRAFANA_PANELS.dpir3} title="Living Room Motion Sensor (DPIR3)" height={250} /></Card>            
           </div>
         )}
 
