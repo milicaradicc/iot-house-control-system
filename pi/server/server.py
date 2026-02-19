@@ -379,16 +379,29 @@ def arm_system():
     print("🔒 System ARMED")
 
 
-def correct_pin():
-    return system_state["pin"] == system_state["entered_pin"]
+def correct_pin(entered):
+    return system_state["pin"] == entered
 
 
-def manage_alarm_system():
-    if not system_state["is_system_armed"] and correct_pin():
-        Timer(10, arm_system).start()
-    if system_state["is_system_armed"] and system_state["is_alarm_active"] and correct_pin():
-        system_state["is_system_armed"] = False
-        deactivate_alarm()
+def manage_alarm_system(entered_pin):
+    """
+    Upravljanje alarmom na osnovu unesenog PIN-a.
+    - Ako je PIN tačan i alarm je aktivan → ugasi alarm i disarm sistem
+    - Ako je PIN tačan i sistem je disarmed → arm za 10s
+    - Ako je PIN netačan → ne radi ništa
+    """
+    if correct_pin(entered_pin):
+        if system_state["is_alarm_active"]:
+            system_state["is_system_armed"] = False
+            deactivate_alarm()
+            print("✅ Correct PIN — alarm deactivated, system disarmed")
+        elif not system_state["is_system_armed"]:
+            Timer(10, arm_system).start()
+            print("🔒 Correct PIN — arming system in 10s")
+        else:
+            print("ℹ️ Correct PIN — system already armed and no alarm active")
+    else:
+        print("❌ Wrong PIN entered")
 
 
 # --- DHT LCD DISPLAY ---
@@ -448,15 +461,35 @@ def get_sensors():
 @app.route('/alarm/pin', methods=['POST'])
 def submit_pin():
     content = request.json
-    pin = content.get('pin', '')
-    for char in str(pin):
-        system_state["entered_pin"] += char
-    if len(system_state["entered_pin"]) >= 4:
-        system_state["entered_pin"] = system_state["entered_pin"][:4]
-        manage_alarm_system()
-        system_state["entered_pin"] = ""
-    return jsonify({"status": "success", "message": "PIN submitted"})
+    pin = str(content.get('pin', ''))
 
+    if len(pin) != 4 or not pin.isdigit():
+        return jsonify({"status": "error", "message": "PIN mora imati 4 cifre"}), 400
+
+    for digit in pin:
+        mqtt_client.publish("pi1/dms", json.dumps({
+            "measurement": "pi1/dms",
+            "value": digit,
+            "simulated": False,
+            "runs_on": "flask",
+            "name": "DMS"
+        }), qos=1)
+
+    mqtt_client.publish("alarm/pin", json.dumps({"pin": pin}), qos=1)
+
+    manage_alarm_system(pin)
+
+    is_correct = correct_pin(pin)
+    return jsonify({
+        "status": "success",
+        "message": "PIN prihvaćen — alarm deaktiviran" if (is_correct and system_state["is_alarm_active"]) else
+                   "PIN prihvaćen — sistem se naoružava za 10s" if (is_correct and not system_state["is_system_armed"]) else
+                   "PIN prihvaćen" if is_correct else
+                   "Pogrešan PIN",
+        "correct": is_correct,
+        "alarm_active": system_state["is_alarm_active"],
+        "system_armed": system_state["is_system_armed"],
+    })
 
 @app.route('/rgb/set', methods=['POST'])
 def set_rgb():

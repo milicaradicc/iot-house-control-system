@@ -181,15 +181,18 @@ const AlarmPanel = ({ state }) => {
   const [msg, setMsg] = useState("");
   const [msgType, setMsgType] = useState("info");
   const [rgbColor, setRgbColor] = useState("off");
+  const [pinLoading, setPinLoading] = useState(false);
 
   const showMsg = (text, type = "info") => {
     setMsg(text);
     setMsgType(type);
-    setTimeout(() => setMsg(""), 3000);
+    setTimeout(() => setMsg(""), 4000);
   };
 
   const submitPin = async () => {
     if (pin.length !== 4) return showMsg("PIN mora imati 4 cifre", "error");
+
+    setPinLoading(true);
     try {
       const res = await fetch(`${API_BASE}/alarm/pin`, {
         method: "POST",
@@ -197,10 +200,17 @@ const AlarmPanel = ({ state }) => {
         body: JSON.stringify({ pin }),
       });
       const data = await res.json();
-      showMsg(data.message || "PIN poslan", "success");
+
+      if (data.correct) {
+        showMsg(data.message || "PIN prihvaćen", "success");
+      } else {
+        showMsg("❌ Pogrešan PIN", "error");
+      }
       setPin("");
     } catch {
       showMsg("Greška pri slanju PIN-a", "error");
+    } finally {
+      setPinLoading(false);
     }
   };
 
@@ -271,17 +281,18 @@ const AlarmPanel = ({ state }) => {
     width: "100%",
   };
 
-  const btnStyle = (bg) => ({
-    background: bg,
+  const btnStyle = (bg, disabled = false) => ({
+    background: disabled ? "#1e293b" : bg,
     border: "none",
     borderRadius: 8,
     padding: "9px 18px",
-    color: "white",
+    color: disabled ? "#334155" : "white",
     fontFamily: "'Space Mono', monospace",
     fontSize: 10,
-    cursor: "pointer",
+    cursor: disabled ? "not-allowed" : "pointer",
     letterSpacing: "0.1em",
     whiteSpace: "nowrap",
+    opacity: disabled ? 0.6 : 1,
   });
 
   return (
@@ -321,15 +332,46 @@ const AlarmPanel = ({ state }) => {
             onChange={e => setPin(e.target.value.replace(/\D/g, ""))}
             onKeyDown={e => e.key === "Enter" && submitPin()}
             placeholder="• • • •"
-            style={{ ...inputStyle, fontSize: 20, letterSpacing: "0.4em", textAlign: "center" }}
+            disabled={pinLoading}
+            style={{
+              ...inputStyle,
+              fontSize: 20,
+              letterSpacing: "0.4em",
+              textAlign: "center",
+              opacity: pinLoading ? 0.5 : 1,
+            }}
           />
-          <button onClick={submitPin} style={btnStyle("#3b82f6")}>SEND</button>
+          <button
+            onClick={submitPin}
+            disabled={pinLoading || pin.length !== 4}
+            style={btnStyle("#3b82f6", pinLoading || pin.length !== 4)}
+          >
+            {pinLoading ? "..." : "SEND"}
+          </button>
         </div>
+
+        {/* PIN feedback message */}
         {msg && (
           <div style={{
-            marginTop: 8, fontSize: 11,
-            color: msgType === "error" ? "#ef4444" : msgType === "success" ? "#22c55e" : "#64748b",
+            marginTop: 10,
+            padding: "8px 12px",
+            borderRadius: 7,
+            fontSize: 11,
             fontFamily: "'Space Mono', monospace",
+            background: msgType === "error"
+              ? "rgba(239,68,68,0.08)"
+              : msgType === "success"
+              ? "rgba(34,197,94,0.08)"
+              : "rgba(255,255,255,0.03)",
+            border: `1px solid ${
+              msgType === "error"
+                ? "rgba(239,68,68,0.25)"
+                : msgType === "success"
+                ? "rgba(34,197,94,0.25)"
+                : "rgba(255,255,255,0.05)"
+            }`,
+            color: msgType === "error" ? "#ef4444" : msgType === "success" ? "#22c55e" : "#64748b",
+            letterSpacing: "0.05em",
           }}>
             {msg}
           </div>
@@ -660,7 +702,8 @@ export default function SmartHomeDashboard() {
                 color="#3b82f6"
               />
               <SensorRow label="DB Buzzer" value={state.is_alarm_active ? "ON" : "OFF"} active={state.is_alarm_active} color="#ef4444" />
-              <SensorRow label="DL Door Light" value={sensors.dl ? "ON" : "OFF"} active={!!sensors.dl} color="#22c55e" />            </Card>
+              <SensorRow label="DL Door Light" value={sensors.dl ? "ON" : "OFF"} active={!!sensors.dl} color="#22c55e" />
+            </Card>
 
             {/* PI2 — Kitchen */}
             <Card>
@@ -800,15 +843,15 @@ export default function SmartHomeDashboard() {
             <Card><GrafanaPanel src={GRAFANA_PANELS.dus2} title="Door Ultrasonic Sensor (DUS2)" height={250} /></Card>
             <Card><GrafanaPanel src={GRAFANA_PANELS.ds2} title="Door Sensor (DS2)" height={250} /></Card>
             <Card><GrafanaPanel src={GRAFANA_PANELS.gsg} title="Gyroscope (GSG)" height={250} /></Card>
-            <Card><GrafanaPanel src={GRAFANA_PANELS.gsg} title="Kitchen Button (BTN)" height={250} /></Card>
+            <Card><GrafanaPanel src={GRAFANA_PANELS.btn} title="Kitchen Button (BTN)" height={250} /></Card>
             <Card><GrafanaPanel src={GRAFANA_PANELS.sd} title="Kitchen 4 Digit 7 Segment Display Timer (4SD)" height={250} /></Card>
             <Card><GrafanaPanel src={GRAFANA_PANELS.dht3} title="Kitchen Digital Humidity and Temperature Sensor (DHT3)" height={250} /></Card>
                         
             <Card><GrafanaPanel src={GRAFANA_PANELS.brgb} title="Bedroom RGB (BRGB)" height={250} /></Card>
             <Card><GrafanaPanel src={GRAFANA_PANELS.dht1} title="Master Bedroom DHT" height={250} /></Card>
-            <Card><GrafanaPanel src={GRAFANA_PANELS.dht2} title="Door Sensor (DS2)" height={250} /></Card>
+            <Card><GrafanaPanel src={GRAFANA_PANELS.dht2} title="Bedroom DHT2" height={250} /></Card>
             <Card><GrafanaPanel src={GRAFANA_PANELS.ir} title="Bedroom Infrared (IR)" height={250} /></Card>
-            <Card><GrafanaPanel src={GRAFANA_PANELS.lcd} title="Kitchen Button (BTN)" height={250} /></Card>
+            <Card><GrafanaPanel src={GRAFANA_PANELS.lcd} title="LCD Display" height={250} /></Card>
             <Card><GrafanaPanel src={GRAFANA_PANELS.dpir3} title="Living Room Motion Sensor (DPIR3)" height={250} /></Card>            
           </div>
         )}
