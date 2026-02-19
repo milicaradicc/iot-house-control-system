@@ -19,7 +19,7 @@ const GRAFANA_PANELS = {
   sd: `http://127.0.0.1:3001/d-solo/ad4btn7/odbrana?orgId=1&panelId=9&from=now-6h&to=now&theme=dark`,
   dpir2: `http://127.0.0.1:3001/d-solo/ad4btn7/odbrana?orgId=1&panelId=13&from=now-6h&to=now&theme=dark`,
   btn: `http://127.0.0.1:3001/d-solo/ad4btn7/odbrana?orgId=1&panelId=11&from=now-6h&to=now&theme=dark`,
-  dht3: `ovo dodati`,
+  dht3: `http://127.0.0.1:3001/d-solo/ad4btn7/odbrana?orgId=1&panelId=14&from=now-6h&to=now&theme=dark`,
   gsg: `http://127.0.0.1:3001/d-solo/ad4btn7/odbrana?orgId=1&panelId=12&from=now-6h&to=now&theme=dark`,
 
 };
