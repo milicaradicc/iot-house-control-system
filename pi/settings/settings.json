@@ -16,7 +16,14 @@
       "DS2": { "simulated": true, "pin": 18, "topic": "pi2/ds2", "name": "Door Sensor 2", "runs_on":"PI2"},
       "DUS2": { "simulated": true, "trig": 19, "echo": 26, "topic": "pi2/dus2", "name": "Kitchen Ultrasonic", "runs_on":"PI2"},
       "DPIR2": { "simulated": true, "pin": 22, "topic": "pi2/dpir2", "name": "Kitchen Motion", "runs_on":"PI2"},
-      "4SD": { "simulated": true, "pins": [2, 3, 4, 10], "topic": "pi2/4sd", "name": "Kitchen Timer", "runs_on":"PI2"},
+      "4SD": {
+          "simulated": true,
+          "segment_pins": [2, 3, 4, 10, 9, 11, 5],  
+          "digit_pins": [6, 13, 19, 26],            
+          "topic": "pi2/4sd",
+          "name": "Kitchen Timer",
+          "runs_on": "PI2"
+      },      
       "BTN": { "simulated": true, "pin": 11, "topic": "pi2/btn", "name": "Kitchen Button", "runs_on":"PI2"},
       "DHT3": { "simulated": true, "pin": 13, "topic": "pi2/dht3", "name": "Kitchen DHT", "runs_on":"PI2"},
       "GSG": { "simulated": true, "topic": "pi2/gsg", "name": "Gyroscope", "runs_on":"PI2"}

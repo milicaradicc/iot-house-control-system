@@ -1,5 +1,3 @@
-# components/sd.py
-
 import threading
 import time
 import paho.mqtt.client as mqtt
@@ -56,7 +54,7 @@ def sd_callback(value, publish_event, sd_settings, verbose = False):
     if publish_data_counter >= publish_data_limit:
         publish_event.set()
 
-def run_segment_display(settings, state=True, verbose = False):
+def run_segment_display(settings, state=True, verbose=False):
     try:
         import RPi.GPIO as GPIO
         GPIO.setmode(GPIO.BCM)
@@ -64,23 +62,32 @@ def run_segment_display(settings, state=True, verbose = False):
     except ImportError:
         GPIO = None
         is_gpio_available = False
-    
+
     if settings.get("simulated", True) or not is_gpio_available:
         from simulators.sd import SegmentDisplaySimulator
-        
+
         def callback_wrapper(value):
             sd_callback(value, publish_event, settings, verbose)
-        
+
         simulator = SegmentDisplaySimulator(callback_wrapper)
-        
-        # Pokretanje simulatora u posebnom threadu
+
         simulator_thread = threading.Thread(target=simulator.run)
         simulator_thread.daemon = True
         simulator_thread.start()
-        
+
         return simulator
+
     else:
-        pin = settings.get("pin")
-        if pin is not None:
-            GPIO.output(pin, GPIO.HIGH if state else GPIO.LOW)
-        return None
+        from actuators.sd import SegmentDisplay
+
+        segment_pins = settings.get("segment_pins")  # [A, B, C, D, E, F, G]
+        digit_pins = settings.get("digit_pins")      # [D1, D2, D3, D4]
+
+        if not segment_pins or not digit_pins:
+            raise ValueError("[SD] Missing segment_pins or digit_pins in settings")
+
+        sd = SegmentDisplay(segment_pins, digit_pins)
+        sd.start()
+
+        print(f"[SD] Hardware segment display started on pins: {segment_pins}, {digit_pins}")
+        return sd

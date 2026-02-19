@@ -68,7 +68,7 @@ def run_motion_sensor(settings, threads, stop_event, code = "DPIR"):
         t.start()
         threads.append(t)
 
-        print("DPIR1 simulator started")
+        print(code+ " simulator started")
 
     else:
         from sensors.dpir1 import DPIR1Sensor, run_dpir1_loop
