@@ -10,7 +10,7 @@ from components.dht import run_dht
 from components.gsg import run_gyroscope
 from components.btn import run_button, simulate_button_press
 from components.sd import run_segment_display
-
+from components.gsg import run_gyroscope, gsg_callback, publish_event
 try:
     import RPi.GPIO as GPIO
     GPIO.setmode(GPIO.BCM)
@@ -76,8 +76,8 @@ if __name__ == "__main__":
     run_dht(dht_settings, threads, stop_event, "DHT3")
     
     # GSG - Gyroscope
-    # gsg_settings = settings.get('PI2', {})['components']['GSG']
-    # run_gyroscope(gsg_settings, threads, stop_event)
+    gsg_settings = settings.get('PI2', {})['components']['GSG']
+    run_gyroscope(gsg_settings, threads, stop_event, verbose= True)
     
     # --- MAIN LOOP – Simulation Input ---
     print("\n" + "="*50)
@@ -122,6 +122,10 @@ if __name__ == "__main__":
                 # Pozivamo funkciju za simulaciju pritiska dugmeta
                 simulate_button_press(btn_settings)
                 print("✓ Button pressed")
+
+            elif user_input == "gsg move":
+                gsg_callback(True, 1.8, publish_event, gsg_settings, code="GSG", verbose=True)
+                print("✓ GSG movement triggered")
             
             else:
                 print("✗ Unknown command. Use: t, n, b, or exit")

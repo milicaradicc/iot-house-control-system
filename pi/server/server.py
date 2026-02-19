@@ -295,6 +295,14 @@ def handle_event(data, topic):
         if system_state["people_count"] == 0 and system_state["is_system_armed"]:
             activate_alarm()
 
+    elif topic == "pi2/gsg":
+        movement = data.get("movement")
+        magnitude = data.get("value")
+        if movement >= 1:
+            print(f"[GSG] 🚰 Faucet movement detected! Magnitude: {magnitude}g")
+            # if system_state["is_system_armed"] and not system_state["is_alarm_active"]:
+            activate_alarm()
+
     # Door sensors
     elif topic == "pi1/ds1":
         system_state["last_ds_readings"]["DS1"] = value
