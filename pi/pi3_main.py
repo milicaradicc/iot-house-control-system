@@ -4,13 +4,11 @@ import signal
 import sys
 
 from settings.settings import load_settings
-
-from components.dht1 import run_bedroom_dht
-from components.dht2 import run_master_bedroom_dht
+from components.dht import run_dht
 from components.ir import run_bedroom_ir
-from components.dpir3 import run_living_room_dpir
+from components.dpir1 import run_motion_sensor
 from components.brgb import run_bedroom_rgb, start_rgb_listener
-from components.lcd import run_living_room_lcd
+from components.lcd import run_living_room_lcd, start_lcd_listener
 
 try:
     import RPi.GPIO as GPIO
@@ -35,9 +33,9 @@ def shutdown(signal_received=None, frame=None):
     print("App stopped cleanly.")
     sys.exit(0)
 
+
 if __name__ == "__main__":
-    
-    print("Starting app...")
+    print("Starting Smart Home App (PI3)...")
     settings = load_settings()
     threads = []
     stop_event = threading.Event()
@@ -45,67 +43,56 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
 
-    # # DHT1
-    # dht1_settings = settings.get('PI3', {})['components']['DHT1']
-    # run_bedroom_dht(dht1_settings, threads, stop_event)
-    #
-    # # DHT2
-    # dht2_settings = settings.get('PI3', {})['components']['DHT2']
-    # run_master_bedroom_dht(dht2_settings, threads, stop_event)
+    # DHT1 - Bedroom
+    dht1_settings = settings.get('PI3', {})['components']['DHT1']
+    run_dht(dht1_settings, threads, stop_event, "DHT1")
 
+    # DHT2 - Master Bedroom
+    dht2_settings = settings.get('PI3', {})['components']['DHT2']
+    run_dht(dht2_settings, threads, stop_event, "DHT2")
+
+    # IR
     ir_settings = settings.get('PI3', {})['components']['IR']
     run_bedroom_ir(ir_settings, threads, stop_event)
 
-    # dpir3_settings = settings.get('PI3', {})['components']['DPIR3']
-    # run_living_room_dpir(dpir3_settings, threads, stop_event)
+    # DPIR3
+    dpir3_settings = settings.get('PI3', {})['components']['DPIR3']
+    run_motion_sensor(dpir3_settings, threads, stop_event, "DPIR3")
 
-    brgd_settings = settings.get('PI3', {})['components']['BRGB']
-    rgb = run_bedroom_rgb(brgd_settings, True)
-    start_rgb_listener(brgd_settings, rgb)
-    #
-    # lcd_settings = settings.get('PI3', {})['components']['LCD']
-    # lcd = run_living_room_lcd(lcd_settings, True)
-    #
-    # from components.lcd import start_lcd_listener
-    # start_lcd_listener(lcd_settings, lcd)
-    
-    # MAIN LOOP – kontrola aktuatora
+    # BRGB
+    brgb_settings = settings.get('PI3', {})['components']['BRGB']
+    rgb = run_bedroom_rgb(brgb_settings, True)
+    start_rgb_listener(brgb_settings, rgb)
+
+    # LCD
+    lcd_settings = settings.get('PI3', {})['components']['LCD']
+    lcd = run_living_room_lcd(lcd_settings, True)
+    start_lcd_listener(lcd_settings, lcd)
+
     try:
         while True:
             cmd = input("> ").strip().lower()
 
             if cmd == "exit":
                 shutdown()
-
             elif cmd == "white":
                 rgb.white()
-
             elif cmd == "red":
                 rgb.red()
-
             elif cmd == "green":
                 rgb.green()
-
             elif cmd == "blue":
                 rgb.blue()
-
             elif cmd == "yellow":
                 rgb.yellow()
-
             elif cmd == "light blue":
                 rgb.lightBlue()
-
             elif cmd == "purple":
                 rgb.purple()
-
             elif cmd == "turn off":
                 rgb.turnOff()
-
-
-               
-
             else:
-                print("Unknown command. Available: turno ff, red, green, blue, purple, yellow, light blue, white,  exit")
+                print("Unknown command. Available: turn off, red, green, blue, purple, yellow, light blue, white, exit")
 
     except KeyboardInterrupt:
         shutdown()
