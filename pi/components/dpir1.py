@@ -28,7 +28,7 @@ publisher_thread.daemon = True
 publisher_thread.start()
 
 
-def dpir1_callback(motion_detected, publish_event, dpir_settings, code="DPIR", verbose = False):
+def dpir1_callback(motion_detected, publish_event, dpir_settings, code="DPIR", verbose = True):
     global publish_data_counter, publish_data_limit
 
     if verbose:

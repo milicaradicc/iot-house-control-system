@@ -1,4 +1,4 @@
-from pi.actuators.dl import DoorLight
+from actuators.dl import DoorLight
 from simulators.dl import DLSimulator
 from settings.broker_settings import HOSTNAME, PORT
 
