@@ -192,13 +192,11 @@ def _auto_off_dl():
 def handle_motion_event(dpir_topic, dus_key):
     now = time.time()
     last = system_state["last_motion_event"][dus_key]
-
     if now - last < MOTION_COOLDOWN:
         print(f"[{dpir_topic}] ⏳ Cooldown active, skipping event")
         return None
 
     is_entering = determine_entry_or_exit(dus_key)
-
     if is_entering is None:
         print(f"[{dpir_topic}] ⚠️  Motion detected but no recent DUS data from {dus_key}")
         return None
@@ -208,23 +206,13 @@ def handle_motion_event(dpir_topic, dus_key):
     if is_entering:
         system_state["people_count"] += 1
         print(f"[{dpir_topic}] ➡️  Person ENTERING | 👥 {system_state['people_count']}")
-        system_state["last_dl"] = True
-        mqtt_client.publish("commands/PI1/DL", json.dumps({"value": True}))
-        Timer(10, _auto_off_dl).start()
+        # LED logika uklonjena odavde — sada je u handle_event
     else:
         system_state["people_count"] = max(0, system_state["people_count"] - 1)
         print(f"[{dpir_topic}] ⬅️  Person EXITING | 👥 {system_state['people_count']}")
 
     mqtt_client.publish("/entries", json.dumps({"people_count": system_state["people_count"]}))
-
-    save_to_influx({
-        "measurement": "entries",
-        "simulated": True,
-        "runs_on": "flask",
-        "name": "People Count",
-        "value": system_state["people_count"]
-    })
-
+    save_to_influx({...})
     return is_entering
 
 
@@ -261,6 +249,12 @@ def handle_event(data, topic):
 
     elif topic == "pi1/dpir1" and value == 1:
         system_state["last_dpir"]["DPIR1"] = time.time()
+        
+        # Toggle LED
+        mqtt_client.publish("commands/PI1/DL", json.dumps({}))
+        system_state["last_dl"] = not system_state["last_dl"]
+        print(f"[DPIR1] 💡 Motion → LED toggled to {'ON' if system_state['last_dl'] else 'OFF'}")
+        
         entered = handle_motion_event("pi1/dpir1", "DUS1")
         if entered is False and system_state["people_count"] == 0 and system_state["is_system_armed"]:
             activate_alarm()
