@@ -462,7 +462,7 @@ const GrafanaPanel = ({ src, title, height = 220 }) => (
 // ── Webcam ────────────────────────────────────────────────────────────────────
 
 const WebcamPanel = () => {
-  const streamUrl = "http://localhost:8080/?action=stream";
+  const streamUrl = "http://192.168.107.144:8080/?action=stream";
   const [offline, setOffline] = useState(false);
 
   return (
