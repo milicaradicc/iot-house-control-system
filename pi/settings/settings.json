@@ -4,7 +4,7 @@
     "components": {
       "DS1": { "simulated": true, "pin": 6, "topic": "pi1/ds1", "name": "Door Sensor 1", "runs_on":"PI1"},
       "DL":  { "simulated": true, "pin": 5, "topic": "pi1/dl", "name": "Door Light", "runs_on":"PI1"},
-      "DUS1": { "simulated": false, "trig": 23, "echo": 24, "topic": "pi1/dus1", "name": "Door Ultrasonic", "runs_on":"PI1"},
+      "DUS1": { "simulated": false, "trigger_pin": 23, "echo_pin": 24, "topic": "pi1/dus1", "name": "Door Ultrasonic", "runs_on":"PI1"},      
       "DB": { "simulated": true, "pin": 17, "topic": "pi1/db", "name": "Door Buzzer", "runs_on":"PI1"},
       "DPIR1": { "simulated": false, "pin": 27, "topic": "pi1/dpir1", "name": "Door Motion", "runs_on":"PI1"},
       "DMS": { "simulated": true, "r1": 25, "r2": 8, "r3": 7, "r4": 1, "c1": 12, "c2": 16, "c3": 20, "c4": 21, "topic": "pi1/dms", "name": "Membrane Switch", "runs_on":"PI1"}
