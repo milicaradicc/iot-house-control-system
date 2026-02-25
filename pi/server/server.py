@@ -58,6 +58,13 @@ system_state = {
     "alarm_reason": None,
     "alarm_triggers": [],
     "alarm_activated_at": None,
+    # Kitchen timer
+    "timer_seconds": 0,
+    "timer_running": False,
+    "timer_started_at": None,
+    "timer_initial": 0,
+    "timer_btn_increment": 10,
+    "timer_expired": False,
 }
 
 
@@ -98,6 +105,7 @@ def on_connect(client, userdata, flags, rc, properties=None):
             print(f"📡 Subscribed to: {t}")
         client.subscribe("timer/set")
         client.subscribe("timer/increment")
+        client.subscribe("pi2/btn")
         print("📡 Subscribed to timer control topics")
     else:
         print(f"❌ MQTT connection failed with result code {rc}")
@@ -330,6 +338,86 @@ def manage_alarm_system(entered_pin):
         print("❌ Wrong PIN entered")
 
 
+# --- KITCHEN TIMER ---
+
+timer_tick_ref = [None]  # mutable reference za Timer thread
+
+def timer_tick():
+    if not system_state["timer_running"]:
+        return
+    if system_state["timer_seconds"] <= 0:
+        system_state["timer_running"] = False
+        system_state["timer_expired"] = True
+        system_state["timer_seconds"] = 0
+        # Pošalji komandu 4SD da treperi sa 00:00
+        mqtt_client.publish("commands/PI2/4SD", json.dumps({
+            "display": "00:00",
+            "blink": True
+        }))
+        print("[TIMER] Isteklo! 4SD treperi 00:00")
+        return
+
+    system_state["timer_seconds"] -= 1
+    mins = system_state["timer_seconds"] // 60
+    secs = system_state["timer_seconds"] % 60
+    display_str = f"{mins:02d}:{secs:02d}"
+    mqtt_client.publish("commands/PI2/4SD", json.dumps({
+        "display": display_str,
+        "blink": False
+    }))
+
+    # Zakaži sljedeći tick
+    t = Timer(1.0, timer_tick)
+    timer_tick_ref[0] = t
+    t.start()
+
+
+def start_timer(seconds):
+    # Zaustavi prethodni tick ako postoji
+    if timer_tick_ref[0] is not None:
+        timer_tick_ref[0].cancel()
+
+    system_state["timer_seconds"] = int(seconds)
+    system_state["timer_initial"] = int(seconds)
+    system_state["timer_running"] = True
+    system_state["timer_expired"] = False
+    system_state["timer_started_at"] = time.time()
+
+    mins = system_state["timer_seconds"] // 60
+    secs = system_state["timer_seconds"] % 60
+    mqtt_client.publish("commands/PI2/4SD", json.dumps({
+        "display": f"{mins:02d}:{secs:02d}",
+        "blink": False
+    }))
+
+    t = Timer(1.0, timer_tick)
+    timer_tick_ref[0] = t
+    t.start()
+    print(f"[TIMER] Start: {seconds}s")
+
+
+def add_seconds_to_timer(n):
+    system_state["timer_seconds"] += int(n)
+
+    # Ako je bio expired, ponovo pokreni
+    if system_state["timer_expired"]:
+        system_state["timer_expired"] = False
+        system_state["timer_running"] = True
+        t = Timer(1.0, timer_tick)
+        timer_tick_ref[0] = t
+        t.start()
+        print(f"[TIMER] BTN — treperenje zaustavljeno, nastavljam sa {system_state['timer_seconds']}s")
+    else:
+        print(f"[TIMER] BTN — dodato {n}s, ukupno: {system_state['timer_seconds']}s")
+
+    mins = system_state["timer_seconds"] // 60
+    secs = system_state["timer_seconds"] % 60
+    mqtt_client.publish("commands/PI2/4SD", json.dumps({
+        "display": f"{mins:02d}:{secs:02d}",
+        "blink": False
+    }))
+
+
 # --- EVENT HANDLER ---
 
 def handle_event(data, topic):
@@ -441,6 +529,24 @@ def handle_event(data, topic):
 
     elif topic == "pi1/dl":
         system_state["last_dl"] = bool(value)
+
+    elif topic == "pi2/btn":
+        # Fizičko dugme u kuhinji — dodaj N sekundi na štopericu
+        if value == 1:
+            n = system_state["timer_btn_increment"]
+            add_seconds_to_timer(n)
+            print(f"[BTN] Pritisnuto — +{n}s na štopericu")
+
+    elif topic == "timer/set":
+        seconds = data.get("seconds")
+        if seconds is not None:
+            start_timer(seconds)
+
+    elif topic == "timer/increment":
+        increment = data.get("increment")
+        if increment is not None:
+            system_state["timer_btn_increment"] = int(increment)
+            print(f"[TIMER] BTN inkrement postavljen na {increment}s")
 
     elif topic == "pi1/dms":
         system_state["entered_pin"] += str(value)
@@ -658,8 +764,10 @@ def set_timer():
     if seconds is None:
         return jsonify({"status": "error", "message": "No seconds provided"}), 400
     try:
+        start_timer(int(seconds))
+        # Takodje pošalji MQTT za fizički 4SD (ako se koristi odvojen subscriber)
         mqtt_client.publish("timer/set", json.dumps({"seconds": int(seconds)}), qos=1)
-        return jsonify({"status": "success", "message": f"Timer set to {seconds} seconds"})
+        return jsonify({"status": "success", "message": f"Štoperica postavljena na {seconds}s"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -671,10 +779,25 @@ def set_timer_increment():
     if increment is None:
         return jsonify({"status": "error", "message": "No increment provided"}), 400
     try:
+        system_state["timer_btn_increment"] = int(increment)
         mqtt_client.publish("timer/increment", json.dumps({"increment": int(increment)}), qos=1)
-        return jsonify({"status": "success", "message": f"Button increment set to {increment} seconds"})
+        return jsonify({"status": "success", "message": f"BTN inkrement postavljen na {increment}s"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route('/timer/state', methods=['GET'])
+def get_timer_state():
+    return jsonify({
+        "status": "success",
+        "data": {
+            "seconds": system_state["timer_seconds"],
+            "initial": system_state["timer_initial"],
+            "running": system_state["timer_running"],
+            "expired": system_state["timer_expired"],
+            "btn_increment": system_state["timer_btn_increment"],
+        }
+    })
 
 
 @app.route('/query', methods=['POST'])

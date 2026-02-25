@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 const API_BASE = "http://localhost:5000";
 
@@ -96,6 +96,13 @@ const useSensorData = () => {
 const fmtDoor = (val) => val === 1 ? "OPEN" : val === 0 ? "CLOSED" : "—";
 const fmtNum = (val, dec = 1) => val !== null && val !== undefined ? Number(val).toFixed(dec) : "—";
 
+const fmtTime = (totalSeconds) => {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+};
+
 // ── Base Components ───────────────────────────────────────────────────────────
 
 const StatusDot = ({ active, color = "#22c55e", pulse = false }) => (
@@ -192,7 +199,7 @@ const AlarmReasonBox = ({ reason, triggers, activatedAt }) => {
         textTransform: "uppercase", marginBottom: 8,
         display: "flex", justifyContent: "space-between", alignItems: "center",
       }}>
-        <span>⚡ Uzrok alarma</span>
+        <span>Uzrok alarma</span>
         {timeStr && <span style={{ color: "#450a0a" }}>{timeStr}</span>}
       </div>
       <div style={{
@@ -224,6 +231,294 @@ const AlarmReasonBox = ({ reason, triggers, activatedAt }) => {
         </div>
       )}
     </div>
+  );
+};
+
+// ── Kitchen Timer Component ───────────────────────────────────────────────────
+
+const KitchenTimer = () => {
+  const [timerVal, setTimerVal] = useState("");
+  const [nVal, setNVal] = useState("");
+  const [msg, setMsg] = useState("");
+  const [msgType, setMsgType] = useState("info");
+
+  // Timer state synced from backend
+  const [seconds, setSeconds] = useState(0);
+  const [initialSeconds, setInitialSeconds] = useState(0);
+  const [running, setRunning] = useState(false);
+  const [expired, setExpired] = useState(false);
+  const [btnIncrement, setBtnIncrement] = useState(10);
+
+  // Flash state for expired display
+  const [flashVisible, setFlashVisible] = useState(true);
+  const flashRef = useRef(null);
+
+  // Poll backend timer state every second
+  useEffect(() => {
+    const fetchTimer = () =>
+      fetch(`${API_BASE}/timer/state`)
+        .then(r => r.json())
+        .then(d => {
+          if (d.status === "success") {
+            setSeconds(d.data.seconds);
+            setRunning(d.data.running);
+            setExpired(d.data.expired);
+            setBtnIncrement(d.data.btn_increment);
+            if (d.data.initial > 0) setInitialSeconds(d.data.initial);
+          }
+        })
+        .catch(() => {});
+
+    fetchTimer();
+    const id = setInterval(fetchTimer, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Flash when expired
+  useEffect(() => {
+    if (expired) {
+      flashRef.current = setInterval(() => setFlashVisible(v => !v), 500);
+    } else {
+      clearInterval(flashRef.current);
+      setFlashVisible(true);
+    }
+    return () => clearInterval(flashRef.current);
+  }, [expired]);
+
+  const showMsg = (text, type = "info") => {
+    setMsg(text); setMsgType(type);
+    setTimeout(() => setMsg(""), 4000);
+  };
+
+  const setTimer = async () => {
+    const s = parseInt(timerVal);
+    if (!timerVal || isNaN(s) || s <= 0)
+      return showMsg("Unesite pozitivan broj sekundi", "error");
+    try {
+      const res = await fetch(`${API_BASE}/timer/set`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ seconds: s }),
+      });
+      const data = await res.json();
+      if (data.status === "success") {
+        setInitialSeconds(s);
+        setTimerVal("");
+        showMsg(`Štoperica: ${fmtTime(s)}`, "success");
+      } else {
+        showMsg(data.message || "Greška", "error");
+      }
+    } catch {
+      showMsg("Greška pri povezivanju", "error");
+    }
+  };
+
+  const setIncrement = async () => {
+    const n = parseInt(nVal);
+    if (!nVal || isNaN(n) || n <= 0)
+      return showMsg("Unesite pozitivan broj sekundi", "error");
+    try {
+      const res = await fetch(`${API_BASE}/timer/increment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ increment: n }),
+      });
+      const data = await res.json();
+      if (data.status === "success") {
+        showMsg(`BTN inkrement: +${n}s`, "success");
+        setNVal("");
+      } else {
+        showMsg(data.message || "Greška", "error");
+      }
+    } catch {
+      showMsg("Greška pri povezivanju", "error");
+    }
+  };
+
+  const quickSet = async (s) => {
+    try {
+      await fetch(`${API_BASE}/timer/set`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ seconds: s }),
+      });
+      setInitialSeconds(s);
+      showMsg(`Štoperica: ${fmtTime(s)}`, "success");
+    } catch {
+      showMsg("Greška", "error");
+    }
+  };
+
+  const progress = initialSeconds > 0 ? (seconds / initialSeconds) * 100 : 0;
+
+  const displayColor = expired
+    ? (flashVisible ? "#ef4444" : "transparent")
+    : running ? "#10b981"
+    : seconds > 0 ? "#f59e0b"
+    : "#1e293b";
+
+  const displayBorder = expired
+    ? "1px solid rgba(239,68,68,0.5)"
+    : running ? "1px solid rgba(16,185,129,0.3)"
+    : "1px solid rgba(255,255,255,0.06)";
+
+  const displayBg = expired
+    ? "rgba(239,68,68,0.06)"
+    : running ? "rgba(16,185,129,0.04)"
+    : "rgba(10,15,28,0.9)";
+
+  const inputStyle = {
+    flex: 1,
+    background: "rgba(15,23,42,0.9)",
+    border: "1px solid rgba(255,255,255,0.07)",
+    borderRadius: 8, padding: "9px 13px",
+    color: "#e2e8f0", fontFamily: "'Space Mono', monospace",
+    fontSize: 12, outline: "none", width: "100%",
+  };
+
+  const btnStyle = (bg, disabled = false) => ({
+    background: disabled ? "#1e293b" : bg,
+    border: "none", borderRadius: 8, padding: "9px 18px",
+    color: disabled ? "#334155" : "white",
+    fontFamily: "'Space Mono', monospace", fontSize: 10,
+    cursor: disabled ? "not-allowed" : "pointer",
+    letterSpacing: "0.1em", whiteSpace: "nowrap",
+    opacity: disabled ? 0.6 : 1, transition: "all 0.2s",
+  });
+
+  return (
+    <Card>
+      <SectionLabel>Kuhinjska Štoperica — 4SD</SectionLabel>
+
+      {/* 4SD Display */}
+      <div style={{
+        display: "flex", flexDirection: "column", alignItems: "center",
+        padding: "20px 14px", marginBottom: 18,
+        background: displayBg, border: displayBorder,
+        borderRadius: 12, transition: "background 0.3s, border 0.3s",
+        position: "relative",
+      }}>
+        <div style={{
+          position: "absolute", top: 10, right: 14,
+          fontSize: 8, letterSpacing: "0.18em",
+          color: expired ? "#ef4444" : running ? "#10b981" : "#334155",
+          fontFamily: "'Space Mono', monospace",
+        }}>
+          {expired ? "ISTEKLO" : running ? "AKTIVNO" : seconds > 0 ? "PAUZIRANO" : "NEAKTIVNO"}
+        </div>
+
+        {/* Segment display */}
+        <div style={{
+          fontSize: 52, fontFamily: "'Space Mono', monospace", fontWeight: "bold",
+          color: displayColor, letterSpacing: "0.08em", lineHeight: 1,
+          textShadow: expired && flashVisible
+            ? "0 0 20px rgba(239,68,68,0.6), 0 0 40px rgba(239,68,68,0.3)"
+            : running ? "0 0 20px rgba(16,185,129,0.4)" : "none",
+          transition: "color 0.1s, text-shadow 0.1s",
+          minWidth: 160, textAlign: "center",
+        }}>
+          {fmtTime(seconds)}
+        </div>
+
+        {/* BTN inkrement info */}
+        {!expired && (
+          <div style={{
+            marginTop: 10, fontSize: 9, color: "#334155",
+            fontFamily: "'Space Mono', monospace", letterSpacing: "0.12em",
+          }}>
+            BTN = +{btnIncrement}s
+          </div>
+        )}
+
+        {/* Progress bar */}
+        {(running || seconds > 0) && !expired && (
+          <div style={{
+            width: "100%", height: 3,
+            background: "rgba(255,255,255,0.05)",
+            borderRadius: 2, marginTop: 12, overflow: "hidden",
+          }}>
+            <div style={{
+              height: "100%",
+              width: `${Math.min(progress, 100)}%`,
+              background: progress > 50
+                ? "linear-gradient(90deg, #10b981, #34d399)"
+                : progress > 20
+                ? "linear-gradient(90deg, #f59e0b, #fbbf24)"
+                : "linear-gradient(90deg, #ef4444, #f87171)",
+              borderRadius: 2, transition: "width 1s linear, background 1s",
+            }} />
+          </div>
+        )}
+
+        {expired && (
+          <div style={{
+            marginTop: 12, fontSize: 10, color: "#ef4444",
+            fontFamily: "'Space Mono', monospace", letterSpacing: "0.15em",
+            opacity: flashVisible ? 1 : 0, transition: "opacity 0.1s",
+          }}>
+            PRITISNITE BTN ZA ZAUSTAVLJANJE
+          </div>
+        )}
+      </div>
+
+      {/* Set timer */}
+      <div style={{ marginBottom: 10 }}>
+        <div style={{ fontSize: 9, color: "#334155", letterSpacing: "0.15em", marginBottom: 6, fontFamily: "'Space Mono', monospace" }}>
+          POSTAVI VREME (sekunde)
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input type="number" min="1" value={timerVal}
+            onChange={e => setTimerVal(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && setTimer()}
+            placeholder="npr. 300 = 05:00" style={inputStyle} />
+          <button onClick={setTimer} style={btnStyle("#10b981")}>SET</button>
+        </div>
+      </div>
+
+      {/* BTN increment */}
+      <div style={{ marginBottom: 10 }}>
+        <div style={{ fontSize: 9, color: "#334155", letterSpacing: "0.15em", marginBottom: 6, fontFamily: "'Space Mono', monospace" }}>
+          BTN INKREMENT (sekunde po pritisku)
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input type="number" min="1" value={nVal}
+            onChange={e => setNVal(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && setIncrement()}
+            placeholder={`trenutno: ${btnIncrement}s`} style={inputStyle} />
+          <button onClick={setIncrement} style={btnStyle("#6366f1")}>SET N</button>
+        </div>
+      </div>
+
+      {/* Quick presets */}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {[{ label: "1 min", s: 60 }, { label: "5 min", s: 300 }, { label: "10 min", s: 600 }, { label: "15 min", s: 900 }, { label: "30 min", s: 1800 }].map(({ label, s }) => (
+          <button key={s} onClick={() => quickSet(s)} style={{
+            background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
+            borderRadius: 6, padding: "5px 12px", color: "#475569",
+            fontFamily: "'Space Mono', monospace", fontSize: 10, cursor: "pointer",
+            letterSpacing: "0.08em", transition: "all 0.2s",
+          }}
+            onMouseEnter={e => { e.target.style.background = "rgba(16,185,129,0.08)"; e.target.style.borderColor = "rgba(16,185,129,0.3)"; e.target.style.color = "#10b981"; }}
+            onMouseLeave={e => { e.target.style.background = "rgba(255,255,255,0.03)"; e.target.style.borderColor = "rgba(255,255,255,0.07)"; e.target.style.color = "#475569"; }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {msg && (
+        <div style={{
+          marginTop: 10, padding: "8px 12px", borderRadius: 7,
+          fontSize: 11, fontFamily: "'Space Mono', monospace",
+          background: msgType === "error" ? "rgba(239,68,68,0.08)" : "rgba(16,185,129,0.08)",
+          border: `1px solid ${msgType === "error" ? "rgba(239,68,68,0.25)" : "rgba(16,185,129,0.25)"}`,
+          color: msgType === "error" ? "#ef4444" : "#10b981",
+          letterSpacing: "0.05em", animation: "fadeIn 0.3s ease",
+        }}>
+          {msg}
+        </div>
+      )}
+    </Card>
   );
 };
 
@@ -322,13 +617,10 @@ const SimulationPanel = () => {
     fontSize: 12, outline: "none", width: "100%",
   };
 
-  const selectedScenario = SCENARIOS.find(s => s.id === scenarioInput.trim());
-
   return (
     <Card>
       <SectionLabel>Simulacija senzora</SectionLabel>
 
-      {/* Input + button */}
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
         <input
           type="text"
@@ -355,7 +647,6 @@ const SimulationPanel = () => {
         </button>
       </div>
 
-      {/* Scenario cards — clickable */}
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
         {SCENARIOS.map(s => {
           const selected = scenarioInput.trim() === s.id;
@@ -402,19 +693,14 @@ const SimulationPanel = () => {
         })}
       </div>
 
-      {/* Countdown bar — only for scenario 1 (LED timer) */}
       {countdown !== null && (
         <div style={{
-          marginBottom: 12,
-          padding: "10px 14px",
+          marginBottom: 12, padding: "10px 14px",
           background: "rgba(34,197,94,0.06)",
           border: "1px solid rgba(34,197,94,0.2)",
-          borderRadius: 8,
-          animation: "fadeIn 0.3s ease",
+          borderRadius: 8, animation: "fadeIn 0.3s ease",
         }}>
-          <div style={{
-            display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8,
-          }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: "#22c55e", letterSpacing: "0.1em" }}>
               💡 DL aktivan
             </span>
@@ -435,7 +721,6 @@ const SimulationPanel = () => {
         </div>
       )}
 
-      {/* Result message */}
       {result && (
         <div style={{
           padding: "9px 13px", borderRadius: 7, fontSize: 11,
@@ -443,8 +728,7 @@ const SimulationPanel = () => {
           background: result.ok ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)",
           border: `1px solid ${result.ok ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}`,
           color: result.ok ? "#22c55e" : "#ef4444",
-          letterSpacing: "0.04em",
-          animation: "fadeIn 0.3s ease",
+          letterSpacing: "0.04em", animation: "fadeIn 0.3s ease",
         }}>
           {result.ok ? "✓" : "✗"} {result.msg}
         </div>
@@ -457,8 +741,6 @@ const SimulationPanel = () => {
 
 const AlarmPanel = ({ state }) => {
   const [pin, setPin] = useState("");
-  const [timerVal, setTimerVal] = useState("");
-  const [nVal, setNVal] = useState("");
   const [msg, setMsg] = useState("");
   const [msgType, setMsgType] = useState("info");
   const [rgbColor, setRgbColor] = useState("off");
@@ -486,32 +768,6 @@ const AlarmPanel = ({ state }) => {
     } finally {
       setPinLoading(false);
     }
-  };
-
-  const setTimer = async () => {
-    if (!timerVal) return showMsg("Unesite sekunde", "error");
-    try {
-      const res = await fetch(`${API_BASE}/timer/set`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ seconds: parseInt(timerVal) }),
-      });
-      const data = await res.json();
-      showMsg(data.message || "Timer postavljen", "success");
-    } catch { showMsg("Greška", "error"); }
-  };
-
-  const setIncrement = async () => {
-    if (!nVal) return showMsg("Unesite vrijednost", "error");
-    try {
-      const res = await fetch(`${API_BASE}/timer/increment`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ increment: parseInt(nVal) }),
-      });
-      const data = await res.json();
-      showMsg(data.message || "Inkrement postavljen", "success");
-    } catch { showMsg("Greška", "error"); }
   };
 
   const setRgb = async (color) => {
@@ -656,17 +912,7 @@ const AlarmPanel = ({ state }) => {
       </Card>
 
       {/* Kitchen Timer */}
-      <Card>
-        <SectionLabel>Kuhinjski tajmer</SectionLabel>
-        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-          <input type="number" value={timerVal} onChange={e => setTimerVal(e.target.value)} placeholder="sekundi" style={inputStyle} />
-          <button onClick={setTimer} style={btnStyle("#10b981")}>SET</button>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <input type="number" value={nVal} onChange={e => setNVal(e.target.value)} placeholder="inkrement dugmeta (s)" style={inputStyle} />
-          <button onClick={setIncrement} style={btnStyle("#6366f1")}>SET N</button>
-        </div>
-      </Card>
+      <KitchenTimer />
 
       {/* RGB Control */}
       <Card>
