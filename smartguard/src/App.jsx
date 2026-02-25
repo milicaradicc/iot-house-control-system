@@ -231,13 +231,40 @@ const AlarmReasonBox = ({ reason, triggers, activatedAt }) => {
 
 const SCENARIOS = [
   {
-    id: 1,
+    id: "1",
     icon: "💡",
     label: "Scenarij 1",
     desc: "DPIR1 pokret → DL uključen 10s",
     detail: "Simulira PIR senzor na ulaznim vratima (PI1). Backend objavljuje MQTT poruku na pi1/dpir1 sa vrijednošću 1, što uzrokuje paljenje door LED-a na 10 sekundi, a zatim automatsko gašenje.",
     color: "#22c55e",
     ledDuration: 10,
+  },
+  {
+    id: "2a",
+    icon: "➡️",
+    label: "Scenarij 2a",
+    desc: "Osoba ULAZI — DUS1 30cm + DPIR1",
+    detail: "Simulira osobu koja ulazi kroz vrata 1 (PI1). Šalje DUS1 distancu 30cm (ispod praga od 60cm = ulaz), zatim okida DPIR1 pokret nakon 0.5s. Brojač osoba se povećava za 1.",
+    color: "#3b82f6",
+    ledDuration: null,
+  },
+  {
+    id: "2b",
+    icon: "⬅️",
+    label: "Scenarij 2b",
+    desc: "Osoba IZLAZI — DUS1 120cm + DPIR1",
+    detail: "Simulira osobu koja izlazi kroz vrata 1 (PI1). Šalje DUS1 distancu 120cm (iznad praga od 60cm = izlaz), zatim okida DPIR1 pokret nakon 0.5s. Brojač osoba se smanjuje za 1.",
+    color: "#f97316",
+    ledDuration: null,
+  },
+  {
+    id: "3",
+    icon: "🚪",
+    label: "Scenarij 3",
+    desc: "DS1 otvoren > 5s → ALARM",
+    detail: "Simulira otvorena vrata na senzoru DS1. Backend šalje DS1=1 (otvoreno), čeka 5 sekundi, i aktivira alarm. Alarm ostaje aktivan dok se DS1 ne zatvori (DS1=0).",
+    color: "#ef4444",
+    ledDuration: null,
   },
 ];
 
@@ -256,7 +283,7 @@ const SimulationPanel = () => {
   }, [countdown]);
 
   const runScenario = async () => {
-    const scenario = parseInt(scenarioInput);
+    const scenario = scenarioInput.trim();
     if (!scenario) return;
 
     setLoading(true);
@@ -272,10 +299,12 @@ const SimulationPanel = () => {
       const ok = data.status === "success";
       setResult({ ok, msg: data.message });
 
-      if (ok && scenario === 1) {
-        const sc = SCENARIOS.find(s => s.id === 1);
-        setTotalDuration(sc?.ledDuration || 10);
-        setCountdown(sc?.ledDuration || 10);
+      if (ok) {
+        const sc = SCENARIOS.find(s => s.id === scenario);
+        if (sc?.ledDuration) {
+          setTotalDuration(sc.ledDuration);
+          setCountdown(sc.ledDuration);
+        }
       }
     } catch {
       setResult({ ok: false, msg: "Greška pri povezivanju sa serverom" });
@@ -293,6 +322,8 @@ const SimulationPanel = () => {
     fontSize: 12, outline: "none", width: "100%",
   };
 
+  const selectedScenario = SCENARIOS.find(s => s.id === scenarioInput.trim());
+
   return (
     <Card>
       <SectionLabel>Simulacija senzora</SectionLabel>
@@ -300,23 +331,22 @@ const SimulationPanel = () => {
       {/* Input + button */}
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
         <input
-          type="number"
-          min={1}
+          type="text"
           value={scenarioInput}
           onChange={e => { setScenarioInput(e.target.value); setResult(null); }}
           onKeyDown={e => e.key === "Enter" && runScenario()}
-          placeholder="Unesite broj scenarija..."
+          placeholder="Unesite broj scenarija (1, 2a, 2b...)"
           style={inputStyle}
         />
         <button
           onClick={runScenario}
-          disabled={loading || !scenarioInput}
+          disabled={loading || !scenarioInput.trim()}
           style={{
-            background: loading || !scenarioInput ? "#1e293b" : "#6366f1",
+            background: loading || !scenarioInput.trim() ? "#1e293b" : "#6366f1",
             border: "none", borderRadius: 8, padding: "9px 20px",
-            color: loading || !scenarioInput ? "#334155" : "white",
+            color: loading || !scenarioInput.trim() ? "#334155" : "white",
             fontFamily: "'Space Mono', monospace", fontSize: 10,
-            cursor: loading || !scenarioInput ? "not-allowed" : "pointer",
+            cursor: loading || !scenarioInput.trim() ? "not-allowed" : "pointer",
             letterSpacing: "0.1em", whiteSpace: "nowrap",
             opacity: loading ? 0.6 : 1, transition: "all 0.2s",
           }}
@@ -328,11 +358,11 @@ const SimulationPanel = () => {
       {/* Scenario cards — clickable */}
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
         {SCENARIOS.map(s => {
-          const selected = parseInt(scenarioInput) === s.id;
+          const selected = scenarioInput.trim() === s.id;
           return (
             <div
               key={s.id}
-              onClick={() => { setScenarioInput(String(s.id)); setResult(null); }}
+              onClick={() => { setScenarioInput(s.id); setResult(null); }}
               style={{
                 padding: "10px 14px",
                 background: selected ? "rgba(99,102,241,0.08)" : "rgba(255,255,255,0.02)",
@@ -350,7 +380,8 @@ const SimulationPanel = () => {
                 </span>
                 <span style={{
                   marginLeft: "auto", padding: "2px 8px",
-                  background: `${s.color}18`, border: `1px solid ${s.color}40`,
+                  background: `${s.color}18`,
+                  border: `1px solid ${s.color}40`,
                   borderRadius: 4, fontSize: 9, color: s.color,
                   fontFamily: "'Space Mono', monospace",
                 }}>
@@ -371,7 +402,7 @@ const SimulationPanel = () => {
         })}
       </div>
 
-      {/* Countdown bar — visible while LED is on */}
+      {/* Countdown bar — only for scenario 1 (LED timer) */}
       {countdown !== null && (
         <div style={{
           marginBottom: 12,
@@ -821,25 +852,21 @@ export default function SmartHomeDashboard() {
               </div>
             )}
 
-            {/* Alarm reason header badge */}
             {state.is_alarm_active && state.alarm_reason && (
-              <div
-                title={state.alarm_reason}
-                style={{
-                  padding: "5px 12px",
-                  background: "rgba(239,68,68,0.08)",
-                  border: "1px solid rgba(239,68,68,0.22)",
-                  borderRadius: 7, fontSize: 9, color: "#fca5a5",
-                  maxWidth: 260, overflow: "hidden",
-                  textOverflow: "ellipsis", whiteSpace: "nowrap",
-                  fontFamily: "'Space Mono', monospace",
-                  letterSpacing: "0.04em", cursor: "default",
-                }}>
+              <div title={state.alarm_reason} style={{
+                padding: "5px 12px",
+                background: "rgba(239,68,68,0.08)",
+                border: "1px solid rgba(239,68,68,0.22)",
+                borderRadius: 7, fontSize: 9, color: "#fca5a5",
+                maxWidth: 260, overflow: "hidden",
+                textOverflow: "ellipsis", whiteSpace: "nowrap",
+                fontFamily: "'Space Mono', monospace",
+                letterSpacing: "0.04em", cursor: "default",
+              }}>
                 ⚡ {state.alarm_reason}
               </div>
             )}
 
-            {/* People badge */}
             <div style={{
               padding: "6px 14px",
               background: state.people_count > 0 ? "rgba(59,130,246,0.08)" : "rgba(10,15,28,0.9)",
@@ -851,7 +878,6 @@ export default function SmartHomeDashboard() {
               👥 {state.people_count}
             </div>
 
-            {/* Alarm badge */}
             <div style={{
               display: "flex", alignItems: "center", gap: 7, padding: "6px 14px",
               background: state.is_alarm_active ? "rgba(239,68,68,0.1)" : "rgba(10,15,28,0.9)",
@@ -865,7 +891,6 @@ export default function SmartHomeDashboard() {
               </span>
             </div>
 
-            {/* Armed badge */}
             <div style={{
               display: "flex", alignItems: "center", gap: 7, padding: "6px 14px",
               background: "rgba(10,15,28,0.9)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 7,
@@ -876,7 +901,6 @@ export default function SmartHomeDashboard() {
               </span>
             </div>
 
-            {/* Clock */}
             <div style={{
               padding: "6px 14px", background: "rgba(10,15,28,0.9)",
               border: "1px solid rgba(255,255,255,0.05)", borderRadius: 7,

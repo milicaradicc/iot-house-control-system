@@ -63,7 +63,7 @@ def run_door_sensor(settings, threads, stop_event):
         print("Starting ds1 simulator...")
         ds1_thread = threading.Thread(
             target=run_door_sensor_simulator,
-            args=(10, ds_callback, stop_event, publish_event, settings)
+            args=(2, ds_callback, stop_event, publish_event, settings)
         )
         ds1_thread.start()
         threads.append(ds1_thread)

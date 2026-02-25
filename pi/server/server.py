@@ -27,6 +27,8 @@ ENTRY_DISTANCE_THRESHOLD = 60
 MOTION_COOLDOWN = 10
 DOOR_OPEN_ALARM_DELAY = 5
 
+ARM_PIN = "4321"
+
 system_state = {
     "is_alarm_active": False,
     "is_system_armed": True,
@@ -228,16 +230,32 @@ def handle_motion_event(dpir_topic, dus_key):
 # --- DOOR SENSOR ALARM LOGIC ---
 
 def check_ds_alarm(ds_key):
+    """
+    Poziva se nakon DOOR_OPEN_ALARM_DELAY sekundi od otvaranja vrata.
+    Ako su vrata još uvijek otvorena aktivira alarm bez obzira na armed stanje.
+    Alarm ostaje aktivan dok se vrata ne zatvore (DS signal ne promijeni na 0).
+
+    NAPOMENA: Python threading.Timer nije precizan - moze okidnuti i do 1-2s
+    ranije. Zbog toga provjeravamo da je prošlo DOOR_OPEN_ALARM_DELAY sekundi
+    racunajuci od open_since, a ne samo od okidanja timera. Ako nije proslo
+    dovoljno vremena, pokrenemo kratki retry timer.
+    """
     open_since = system_state["ds_open_since"][ds_key]
     if open_since is None:
         return
-    if time.time() - open_since >= DOOR_OPEN_ALARM_DELAY:
-        print(f"[{ds_key}] 🚪 Door open for more than {DOOR_OPEN_ALARM_DELAY}s → ALARM")
+
+    elapsed = time.time() - open_since
+    if elapsed >= DOOR_OPEN_ALARM_DELAY:
+        print(f"[{ds_key}] Vrata otvorena {elapsed:.1f}s -> ALARM")
         system_state["ds_alarm_active"][ds_key] = True
         activate_alarm(
-            reason=f"Vrata {ds_key} otvorena duže od {DOOR_OPEN_ALARM_DELAY} sekundi",
+            reason=f"Vrata {ds_key} otvorena duze od {DOOR_OPEN_ALARM_DELAY} sekundi",
             sensors=[ds_key]
         )
+    else:
+        remaining = DOOR_OPEN_ALARM_DELAY - elapsed + 0.2
+        print(f"[{ds_key}] Timer prerano okidnuo (proslo {elapsed:.1f}s), retry za {remaining:.1f}s")
+        Timer(remaining, lambda: check_ds_alarm(ds_key)).start()
 
 
 def any_ds_alarm_active():
@@ -285,10 +303,19 @@ def correct_pin(entered):
 def manage_alarm_system(entered_pin):
     """
     Upravljanje alarmom na osnovu unesenog PIN-a.
-    - Ako je PIN tačan i alarm je aktivan → ugasi alarm i disarm sistem
-    - Ako je PIN tačan i sistem je disarmed → arm za 10s
+    - Ako je PIN 4321 → arm sistem za 10s (bez obzira na trenutno stanje)
+    - Ako je PIN tačan (1234) i alarm je aktivan → ugasi alarm i disarm sistem
+    - Ako je PIN tačan (1234) i sistem je disarmed → arm za 10s
     - Ako je PIN netačan → ne radi ništa
     """
+    if entered_pin == ARM_PIN:
+        if not system_state["is_system_armed"]:
+            Timer(10, arm_system).start()
+            print("🔒 Arm PIN (4321) — arming system in 10s")
+        else:
+            print("ℹ️ Arm PIN (4321) — system already armed")
+        return
+
     if correct_pin(entered_pin):
         if system_state["is_alarm_active"]:
             system_state["is_system_armed"] = False
@@ -373,30 +400,44 @@ def handle_event(data, topic):
         if value == 1 or value is True:
             if system_state["ds_open_since"]["DS1"] is None:
                 system_state["ds_open_since"]["DS1"] = time.time()
-                print(f"[DS1] 🚪 Door opened — waiting {DOOR_OPEN_ALARM_DELAY}s...")
+                print(f"[DS1] 🚪 Vrata otvorena — čekam {DOOR_OPEN_ALARM_DELAY}s...")
                 Timer(DOOR_OPEN_ALARM_DELAY, lambda: check_ds_alarm("DS1")).start()
         else:
             system_state["ds_open_since"]["DS1"] = None
             if system_state["ds_alarm_active"]["DS1"]:
                 system_state["ds_alarm_active"]["DS1"] = False
-                print("[DS1] 🚪 Door closed")
+                # Ukloni DS1 iz aktivnih triggera
+                system_state["alarm_triggers"] = [t for t in system_state["alarm_triggers"] if t != "DS1"]
+                print("[DS1] 🚪 Vrata zatvorena — DS1 uklonjen iz alarma")
                 if not any_ds_alarm_active():
                     deactivate_alarm()
+                else:
+                    # Drugi DS još aktivan — ažuriraj reason
+                    remaining = [t for t in system_state["alarm_triggers"] if t.startswith("DS")]
+                    system_state["alarm_reason"] = f"Vrata {', '.join(remaining)} još uvijek otvorena"
+                    print(f"[DS1] Alarm ostaje aktivan zbog: {remaining}")
 
     elif topic == "pi2/ds2":
         system_state["last_ds_readings"]["DS2"] = value
         if value == 1:
             if system_state["ds_open_since"]["DS2"] is None:
                 system_state["ds_open_since"]["DS2"] = time.time()
-                print(f"[DS2] 🚪 Door opened — waiting {DOOR_OPEN_ALARM_DELAY}s...")
+                print(f"[DS2] 🚪 Vrata otvorena — čekam {DOOR_OPEN_ALARM_DELAY}s...")
                 Timer(DOOR_OPEN_ALARM_DELAY, lambda: check_ds_alarm("DS2")).start()
         else:
             system_state["ds_open_since"]["DS2"] = None
             if system_state["ds_alarm_active"]["DS2"]:
                 system_state["ds_alarm_active"]["DS2"] = False
-                print("[DS2] 🚪 Door closed")
+                # Ukloni DS2 iz aktivnih triggera
+                system_state["alarm_triggers"] = [t for t in system_state["alarm_triggers"] if t != "DS2"]
+                print("[DS2] 🚪 Vrata zatvorena — DS2 uklonjen iz alarma")
                 if not any_ds_alarm_active():
                     deactivate_alarm()
+                else:
+                    # Drugi DS još aktivan — ažuriraj reason
+                    remaining = [t for t in system_state["alarm_triggers"] if t.startswith("DS")]
+                    system_state["alarm_reason"] = f"Vrata {', '.join(remaining)} još uvijek otvorena"
+                    print(f"[DS2] Alarm ostaje aktivan zbog: {remaining}")
 
     elif topic == "pi1/dl":
         system_state["last_dl"] = bool(value)
@@ -463,9 +504,8 @@ def display_dhts():
 def simulate_sensor():
     content = request.json
     scenario = content.get('scenario')
-    
-    if scenario == 1:
-        # Simulacija DPIR1 — pokret na ulaznim vratima
+
+    if scenario == "1":
         payload = json.dumps({
             "measurement": "pi1/dpir1",
             "value": 1,
@@ -475,8 +515,46 @@ def simulate_sensor():
         })
         mqtt_client.publish("pi1/dpir1", payload, qos=1)
         return jsonify({"status": "success", "message": "Scenarij 1: DPIR1 simuliran — LED će se upaliti na 10s"})
-    
+
+    elif scenario == "2a":
+        mqtt_client.publish("pi1/dus1", json.dumps({
+            "measurement": "pi1/dus1", "value": 30.0,
+            "simulated": True, "runs_on": "flask", "name": "DUS1"
+        }), qos=1)
+        def trigger(): mqtt_client.publish("pi1/dpir1", json.dumps({
+            "measurement": "pi1/dpir1", "value": 1,
+            "simulated": True, "runs_on": "flask", "name": "DPIR1"
+        }), qos=1)
+        Timer(0.5, trigger).start()
+        return jsonify({"status": "success", "message": f"Scenarij 2a: osoba ULAZI | trenutno: {system_state['people_count']} osoba"})
+
+    elif scenario == "2b":
+        mqtt_client.publish("pi1/dus1", json.dumps({
+            "measurement": "pi1/dus1", "value": 120.0,
+            "simulated": True, "runs_on": "flask", "name": "DUS1"
+        }), qos=1)
+        def trigger(): mqtt_client.publish("pi1/dpir1", json.dumps({
+            "measurement": "pi1/dpir1", "value": 1,
+            "simulated": True, "runs_on": "flask", "name": "DPIR1"
+        }), qos=1)
+        Timer(0.5, trigger).start()
+        return jsonify({"status": "success", "message": f"Scenarij 2b: osoba IZLAZI | trenutno: {system_state['people_count']} osoba"})
+
+    elif scenario == "3":
+        mqtt_client.publish("pi1/ds1", json.dumps({
+            "measurement": "pi1/ds1",
+            "value": 1,
+            "simulated": True,
+            "runs_on": "flask",
+            "name": "DS1"
+        }), qos=1)
+        return jsonify({
+            "status": "success",
+            "message": "Scenarij 3: DS1 otvoren — alarm aktivira se za 5s ako vrata ostanu otvorena"
+        })
+
     return jsonify({"status": "error", "message": "Nepoznat scenarij"}), 400
+
 
 @app.route('/system/state', methods=['GET'])
 def get_system_state():
@@ -540,13 +618,16 @@ def submit_pin():
     manage_alarm_system(pin)
 
     is_correct = correct_pin(pin)
+    is_arm_pin = pin == ARM_PIN
+
     return jsonify({
         "status": "success",
-        "message": "PIN prihvaćen — alarm deaktiviran" if (is_correct and system_state["is_alarm_active"]) else
+        "message": "PIN prihvaćen — alarm deaktiviran" if (is_correct and not system_state["is_alarm_active"]) else
+                   "ARM PIN prihvaćen — sistem se naoružava za 10s" if is_arm_pin else
                    "PIN prihvaćen — sistem se naoružava za 10s" if (is_correct and not system_state["is_system_armed"]) else
                    "PIN prihvaćen" if is_correct else
                    "Pogrešan PIN",
-        "correct": is_correct,
+        "correct": is_correct or is_arm_pin,
         "alarm_active": system_state["is_alarm_active"],
         "system_armed": system_state["is_system_armed"],
     })
