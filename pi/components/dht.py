@@ -55,12 +55,12 @@ def run_dht(settings, threads, stop_event, code):
     if settings['simulated']:
         from simulators.dht import run_dht_simulator
         print(f"🚀 Starting {code} SIMULATOR")
-        t = threading.Thread(target=run_dht_simulator, args=(2, dht_callback, stop_event, publish_event, settings))
+        t = threading.Thread(target=run_dht_simulator, args=(10, dht_callback, stop_event, publish_event, settings))
     else:
         from sensors.dht import run_dht_loop, DHT
         print(f"🔌 Starting {code} HARDWARE")
         dht = DHT(settings['pin'])
-        t = threading.Thread(target=run_dht_loop, args=(dht, 2, dht_callback, stop_event, code, publish_event, settings))
+        t = threading.Thread(target=run_dht_loop, args=(dht, 10, dht_callback, stop_event, code, publish_event, settings))
     
     t.start()
     threads.append(t)

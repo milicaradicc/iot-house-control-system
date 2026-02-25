@@ -6,6 +6,7 @@ import paho.mqtt.publish as publish
 import paho.mqtt.client as mqtt
 import threading
 import json
+import uuid
 
 try:
     import RPi.GPIO as GPIO
@@ -66,26 +67,32 @@ def db_callback(value, publish_event, db_settings, code="DB"):
 
 
 def start_db_listener(db_settings, db_instance):
-    """Sluša MQTT komande i pali/gasi buzzer."""
-    def on_connect(client, userdata, flags, rc, properties=None):
-        client.subscribe("commands/PI1/DB")
-        print("✅ DB listener subscribed to commands/PI1/DB")
+    def on_connect(client, userdata, flags, rc):
+        print(f"[DB Listener] Connected rc={rc}")
+        if rc == 0:
+            client.subscribe("commands/PI1/DB")
+            print("✅ DB listener subscribed to commands/PI1/DB")
+        else:
+            print(f"❌ DB listener connection failed: rc={rc}")
 
     def on_message(client, userdata, msg):
         try:
             payload = json.loads(msg.payload.decode("utf-8"))
             value = payload.get("value", False)
-            print(f"[DB] Command received: value={value}")
+            print(f"[DB] 📩 Command received: value={value}")
             if value:
+                print("[DB] 🔊 Turning buzzer ON")
                 db_instance.on()
             else:
+                print("[DB] 🔇 Turning buzzer OFF")
                 db_instance.off()
         except Exception as e:
             print(f"❌ DB on_message error: {e}")
 
-    client = mqtt.Client()    
+    client = mqtt.Client(client_id=f"db_listener_{uuid.uuid4()}")
     client.on_connect = on_connect
     client.on_message = on_message
+    print(f"[DB Listener] Connecting to {HOSTNAME}:{PORT}...")
     client.connect(HOSTNAME, PORT, 60)
     client.loop_start()
     return client
@@ -103,7 +110,6 @@ def run_door_buzzer(settings, threads, stop_event):
         print(f"Starting DB on pin {pin}...")
         db_instance = DoorBuzzer(pin, callback_wrapper)
 
-    # Ovo je bio problem — listener se nikad nije pokretao
     listener_client = start_db_listener(settings, db_instance)
 
     print("✅ DB started")

@@ -58,7 +58,7 @@ def run_door_membrane_switch(settings, threads, stop_event):
     if settings['simulated']:
         from simulators.dms import run_door_membrane_switch_simulator
         print("Starting dms simulator...")
-        dms_thread = threading.Thread(target= run_door_membrane_switch_simulator, args=(dms_callback, stop_event, publish_event, settings))
+        dms_thread = threading.Thread(target= run_door_membrane_switch_simulator, args=(dms_callback, stop_event, publish_event, settings, 10))
         dms_thread.start()
         threads.append(dms_thread)
         print("DMS simulator started!")

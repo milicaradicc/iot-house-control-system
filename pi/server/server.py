@@ -51,7 +51,11 @@ system_state = {
     "current_rgb": "off",
     "last_dl": False,
     "entered_pin": "",
-    "pin": "1234"
+    "pin": "1234",
+    # Alarm reason tracking
+    "alarm_reason": None,
+    "alarm_triggers": [],
+    "alarm_activated_at": None,
 }
 
 
@@ -206,13 +210,18 @@ def handle_motion_event(dpir_topic, dus_key):
     if is_entering:
         system_state["people_count"] += 1
         print(f"[{dpir_topic}] ➡️  Person ENTERING | 👥 {system_state['people_count']}")
-        # LED logika uklonjena odavde — sada je u handle_event
     else:
         system_state["people_count"] = max(0, system_state["people_count"] - 1)
         print(f"[{dpir_topic}] ⬅️  Person EXITING | 👥 {system_state['people_count']}")
 
     mqtt_client.publish("/entries", json.dumps({"people_count": system_state["people_count"]}))
-    save_to_influx({...})
+    save_to_influx({
+        "measurement": "people_count",
+        "value": system_state["people_count"],
+        "simulated": False,
+        "runs_on": "flask",
+        "name": "PeopleCounter"
+    })
     return is_entering
 
 
@@ -225,11 +234,73 @@ def check_ds_alarm(ds_key):
     if time.time() - open_since >= DOOR_OPEN_ALARM_DELAY:
         print(f"[{ds_key}] 🚪 Door open for more than {DOOR_OPEN_ALARM_DELAY}s → ALARM")
         system_state["ds_alarm_active"][ds_key] = True
-        activate_alarm()
+        activate_alarm(
+            reason=f"Vrata {ds_key} otvorena duže od {DOOR_OPEN_ALARM_DELAY} sekundi",
+            sensors=[ds_key]
+        )
 
 
 def any_ds_alarm_active():
     return any(system_state["ds_alarm_active"].values())
+
+
+# --- ALARM LOGIC ---
+
+def activate_alarm(reason=None, sensors=None):
+    if not system_state["is_alarm_active"]:
+        system_state["is_alarm_active"] = True
+        system_state["alarm_reason"] = reason or "Nepoznat uzrok"
+        system_state["alarm_triggers"] = sensors or []
+        system_state["alarm_activated_at"] = time.time()
+        mqtt_client.publish("commands/PI1/DB", json.dumps({"value": True}))
+        print(f"🚨 ALARM ACTIVATED | Razlog: {reason} | Senzori: {sensors}")
+    else:
+        # Alarm već aktivan — dodaj novi trigger ako postoji
+        if sensors:
+            for s in sensors:
+                if s not in system_state["alarm_triggers"]:
+                    system_state["alarm_triggers"].append(s)
+        print(f"[ALARM] već aktivan, dodani senzori: {sensors}")
+
+
+def deactivate_alarm():
+    if system_state["is_alarm_active"]:
+        system_state["is_alarm_active"] = False
+        system_state["alarm_reason"] = None
+        system_state["alarm_triggers"] = []
+        system_state["alarm_activated_at"] = None
+        mqtt_client.publish("commands/PI1/DB", json.dumps({"value": False}))
+        print("✅ ALARM DEACTIVATED")
+
+
+def arm_system():
+    system_state["is_system_armed"] = True
+    print("🔒 System ARMED")
+
+
+def correct_pin(entered):
+    return system_state["pin"] == entered
+
+
+def manage_alarm_system(entered_pin):
+    """
+    Upravljanje alarmom na osnovu unesenog PIN-a.
+    - Ako je PIN tačan i alarm je aktivan → ugasi alarm i disarm sistem
+    - Ako je PIN tačan i sistem je disarmed → arm za 10s
+    - Ako je PIN netačan → ne radi ništa
+    """
+    if correct_pin(entered_pin):
+        if system_state["is_alarm_active"]:
+            system_state["is_system_armed"] = False
+            deactivate_alarm()
+            print("✅ Correct PIN — alarm deactivated, system disarmed")
+        elif not system_state["is_system_armed"]:
+            Timer(10, arm_system).start()
+            print("🔒 Correct PIN — arming system in 10s")
+        else:
+            print("ℹ️ Correct PIN — system already armed and no alarm active")
+    else:
+        print("❌ Wrong PIN entered")
 
 
 # --- EVENT HANDLER ---
@@ -249,26 +320,42 @@ def handle_event(data, topic):
 
     elif topic == "pi1/dpir1" and value == 1:
         system_state["last_dpir"]["DPIR1"] = time.time()
-        
-        # Toggle LED
-        mqtt_client.publish("commands/PI1/DL", json.dumps({}))
-        system_state["last_dl"] = not system_state["last_dl"]
-        print(f"[DPIR1] 💡 Motion → LED toggled to {'ON' if system_state['last_dl'] else 'OFF'}")
-        
+
+        # Uključi DL
+        system_state["last_dl"] = True
+        mqtt_client.publish("commands/PI1/DL", json.dumps({"value": True}))
+        print(f"[DPIR1] 💡 Motion → LED ON (10s)")
+
+        # Ugasi DL nakon 10 sekundi
+        def turn_off_dl():
+            system_state["last_dl"] = False
+            mqtt_client.publish("commands/PI1/DL", json.dumps({"value": False}))
+            print("[DPIR1] 💡 LED auto-OFF after 10s")
+        Timer(10, turn_off_dl).start()
+
         entered = handle_motion_event("pi1/dpir1", "DUS1")
         if entered is False and system_state["people_count"] == 0 and system_state["is_system_armed"]:
-            activate_alarm()
+            activate_alarm(
+                reason="Kretanje detektovano na izlazu, nema registrovanih osoba unutra",
+                sensors=["DPIR1", "DUS1"]
+            )
 
     elif topic == "pi2/dpir2" and value == 1:
         system_state["last_dpir"]["DPIR2"] = time.time()
         entered = handle_motion_event("pi2/dpir2", "DUS2")
         if entered is False and system_state["people_count"] == 0 and system_state["is_system_armed"]:
-            activate_alarm()
+            activate_alarm(
+                reason="Kretanje detektovano na izlazu (ulaz 2), nema registrovanih osoba unutra",
+                sensors=["DPIR2", "DUS2"]
+            )
 
     elif topic == "pi3/dpir3" and value == 1:
         system_state["last_dpir"]["DPIR3"] = time.time()
         if system_state["people_count"] == 0 and system_state["is_system_armed"]:
-            activate_alarm()
+            activate_alarm(
+                reason="Kretanje detektovano u dnevnoj sobi, nema registrovanih osoba unutra",
+                sensors=["DPIR3"]
+            )
 
     elif topic == "pi2/gsg":
         movement = data.get("movement")
@@ -276,11 +363,14 @@ def handle_event(data, topic):
         system_state["last_gsg"] = magnitude
         if movement >= 1:
             print(f"[GSG] 🚰 Faucet movement detected! Magnitude: {magnitude}g")
-            activate_alarm()
+            activate_alarm(
+                reason=f"Detektovano neobično kretanje slavine/gyroscopea (intenzitet: {magnitude}g)",
+                sensors=["GSG"]
+            )
 
     elif topic == "pi1/ds1":
         system_state["last_ds_readings"]["DS1"] = value
-        if value == 1:
+        if value == 1 or value is True:
             if system_state["ds_open_since"]["DS1"] is None:
                 system_state["ds_open_since"]["DS1"] = time.time()
                 print(f"[DS1] 🚪 Door opened — waiting {DOOR_OPEN_ALARM_DELAY}s...")
@@ -314,7 +404,7 @@ def handle_event(data, topic):
     elif topic == "pi1/dms":
         system_state["entered_pin"] += str(value)
         if len(system_state["entered_pin"]) == 4:
-            manage_alarm_system()
+            manage_alarm_system(system_state["entered_pin"])
             system_state["entered_pin"] = ""
 
     # DHT — subtopic format
@@ -352,52 +442,6 @@ def handle_event(data, topic):
         mqtt_client.publish("commands/PI3/BRGB", json.dumps({"color": target}))
 
 
-# --- ALARM LOGIC ---
-
-def activate_alarm():
-    if not system_state["is_alarm_active"]:
-        system_state["is_alarm_active"] = True
-        mqtt_client.publish("commands/PI1/DB", json.dumps({"value": True}))
-        print("🚨 ALARM ACTIVATED")
-
-
-def deactivate_alarm():
-    if system_state["is_alarm_active"]:
-        system_state["is_alarm_active"] = False
-        mqtt_client.publish("commands/PI1/DB", json.dumps({"value": False}))
-        print("✅ ALARM DEACTIVATED")
-
-
-def arm_system():
-    system_state["is_system_armed"] = True
-    print("🔒 System ARMED")
-
-
-def correct_pin(entered):
-    return system_state["pin"] == entered
-
-
-def manage_alarm_system(entered_pin):
-    """
-    Upravljanje alarmom na osnovu unesenog PIN-a.
-    - Ako je PIN tačan i alarm je aktivan → ugasi alarm i disarm sistem
-    - Ako je PIN tačan i sistem je disarmed → arm za 10s
-    - Ako je PIN netačan → ne radi ništa
-    """
-    if correct_pin(entered_pin):
-        if system_state["is_alarm_active"]:
-            system_state["is_system_armed"] = False
-            deactivate_alarm()
-            print("✅ Correct PIN — alarm deactivated, system disarmed")
-        elif not system_state["is_system_armed"]:
-            Timer(10, arm_system).start()
-            print("🔒 Correct PIN — arming system in 10s")
-        else:
-            print("ℹ️ Correct PIN — system already armed and no alarm active")
-    else:
-        print("❌ Wrong PIN entered")
-
-
 # --- DHT LCD DISPLAY ---
 
 def display_dhts():
@@ -415,6 +459,25 @@ def display_dhts():
 
 # --- API ROUTES ---
 
+@app.route('/simulate/sensor', methods=['POST'])
+def simulate_sensor():
+    content = request.json
+    scenario = content.get('scenario')
+    
+    if scenario == 1:
+        # Simulacija DPIR1 — pokret na ulaznim vratima
+        payload = json.dumps({
+            "measurement": "pi1/dpir1",
+            "value": 1,
+            "simulated": True,
+            "runs_on": "flask",
+            "name": "DPIR1"
+        })
+        mqtt_client.publish("pi1/dpir1", payload, qos=1)
+        return jsonify({"status": "success", "message": "Scenarij 1: DPIR1 simuliran — LED će se upaliti na 10s"})
+    
+    return jsonify({"status": "error", "message": "Nepoznat scenarij"}), 400
+
 @app.route('/system/state', methods=['GET'])
 def get_system_state():
     return jsonify({
@@ -423,6 +486,9 @@ def get_system_state():
             "people_count": system_state["people_count"],
             "is_alarm_active": system_state["is_alarm_active"],
             "is_system_armed": system_state["is_system_armed"],
+            "alarm_reason": system_state["alarm_reason"],
+            "alarm_triggers": system_state["alarm_triggers"],
+            "alarm_activated_at": system_state["alarm_activated_at"],
         }
     })
 
@@ -430,7 +496,7 @@ def get_system_state():
 @app.route('/system/sensors', methods=['GET'])
 def get_sensors():
     now = time.time()
-    dpir1_active = (now - system_state["last_dpir"]["DPIR1"]) < 10 if system_state["last_dpir"]["DPIR1"] else False
+    dpir1_active = (now - system_state["last_dpir"]["DPIR1"]) < 2 if system_state["last_dpir"]["DPIR1"] else False
     dpir2_active = (now - system_state["last_dpir"]["DPIR2"]) < 10 if system_state["last_dpir"]["DPIR2"] else False
     dpir3_active = (now - system_state["last_dpir"]["DPIR3"]) < 10 if system_state["last_dpir"]["DPIR3"] else False
     return jsonify({
@@ -484,6 +550,7 @@ def submit_pin():
         "alarm_active": system_state["is_alarm_active"],
         "system_armed": system_state["is_system_armed"],
     })
+
 
 @app.route('/rgb/set', methods=['POST'])
 def set_rgb():

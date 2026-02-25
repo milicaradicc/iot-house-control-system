@@ -64,7 +64,7 @@ def run_gyroscope(settings, threads, stop_event, code="GSG", verbose = False):
         print(f"Starting {code} simulator...")
         t = threading.Thread(
             target=run_gyroscope_simulator,
-            args=(2, gsg_callback, stop_event, publish_event, settings, verbose)
+            args=(10, gsg_callback, stop_event, publish_event, settings, verbose)
         )
         t.start()
         threads.append(t)
@@ -75,7 +75,7 @@ def run_gyroscope(settings, threads, stop_event, code="GSG", verbose = False):
         sensor = GyroscopeSensor()
         t = threading.Thread(
             target=run_gsg_loop,
-            args=(sensor, 0.5, gsg_callback, stop_event, code, publish_event, settings, verbose)
+            args=(sensor, 10, gsg_callback, stop_event, code, publish_event, settings, verbose)
         )
         t.start()
         threads.append(t)

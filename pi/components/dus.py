@@ -58,7 +58,7 @@ def run_ultrasonic_door_sensor(settings, threads, stop_event, code):
         print("Starting dus1 simulator...")
         dus1_thread = threading.Thread(
             target=run_ultrasonic_door_sensor_simulator,
-            args=(2, dus_callback, stop_event, publish_event, settings)
+            args=(10, dus_callback, stop_event, publish_event, settings)
         )
         dus1_thread.start()
         threads.append(dus1_thread)
@@ -69,7 +69,7 @@ def run_ultrasonic_door_sensor(settings, threads, stop_event, code):
         dus = DoorUltrasonicSensor(settings['trigger_pin'], settings['echo_pin'])
         dus1_thread = threading.Thread(
             target=run_dus_loop,
-            args=(dus, 2, dus_callback, stop_event, code, publish_event, settings)
+            args=(dus, 10, dus_callback, stop_event, code, publish_event, settings)
         )
         dus1_thread.start()
         threads.append(dus1_thread)
