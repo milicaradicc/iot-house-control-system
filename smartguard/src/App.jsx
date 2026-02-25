@@ -562,9 +562,9 @@ const SCENARIOS = [
     ledDuration: null,
   },
   {
-    id: "7",
+    id: "6",
     icon: "🚰",
-    label: "Scenarij 7",
+    label: "Scenarij 6",
     desc: "GSG pomeraj slavine → ALARM",
     detail: "Simulira značajan pomeraj gyroscopea (GSG) pričvršćenog za slavinu. Backend šalje MQTT poruku na pi2/gsg sa movement=1 i magnitudom 2.5g, što odmah aktivira alarm.",
     color: "#a855f7",
