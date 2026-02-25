@@ -659,6 +659,21 @@ def simulate_sensor():
             "message": "Scenarij 3: DS1 otvoren — alarm aktivira se za 5s ako vrata ostanu otvorena"
         })
 
+    elif scenario == "7":
+        magnitude = 2.5
+        mqtt_client.publish("pi2/gsg", json.dumps({
+            "measurement": "pi2/gsg",
+            "value": magnitude,
+            "movement": 1,
+            "simulated": True,
+            "runs_on": "flask",
+            "name": "GSG"
+        }), qos=1)
+        return jsonify({
+            "status": "success",
+            "message": f"Scenarij 7: GSG pomeraj detektovan ({magnitude}g) — alarm aktiviran"
+        })
+
     return jsonify({"status": "error", "message": "Nepoznat scenarij"}), 400
 
 
