@@ -65,6 +65,8 @@ system_state = {
     "timer_initial": 0,
     "timer_btn_increment": 10,
     "timer_expired": False,
+    # Grace period — PIN unesen dok su vrata otvorena, ne pali alarm
+    "ds_grace_period": {"DS1": False, "DS2": False},
 }
 
 
@@ -240,16 +242,17 @@ def handle_motion_event(dpir_topic, dus_key):
 def check_ds_alarm(ds_key):
     """
     Poziva se nakon DOOR_OPEN_ALARM_DELAY sekundi od otvaranja vrata.
-    Ako su vrata još uvijek otvorena aktivira alarm bez obzira na armed stanje.
-    Alarm ostaje aktivan dok se vrata ne zatvore (DS signal ne promijeni na 0).
-
-    NAPOMENA: Python threading.Timer nije precizan - moze okidnuti i do 1-2s
-    ranije. Zbog toga provjeravamo da je prošlo DOOR_OPEN_ALARM_DELAY sekundi
-    racunajuci od open_since, a ne samo od okidanja timera. Ako nije proslo
-    dovoljno vremena, pokrenemo kratki retry timer.
+    Ako su vrata još uvijek otvorena aktivira alarm.
+    Ako je u međuvremenu unesen ispravan PIN (grace period), alarm se ne pali.
     """
     open_since = system_state["ds_open_since"][ds_key]
     if open_since is None:
+        return
+
+    # Grace period — korisnik je unio PIN dok su vrata bila otvorena
+    if system_state["ds_grace_period"][ds_key]:
+        print(f"[{ds_key}] Grace period aktivan — PIN unesen, alarm se ne aktivira")
+        system_state["ds_grace_period"][ds_key] = False
         return
 
     elapsed = time.time() - open_since
@@ -273,6 +276,9 @@ def any_ds_alarm_active():
 # --- ALARM LOGIC ---
 
 def activate_alarm(reason=None, sensors=None):
+    if not system_state["is_system_armed"]:
+        print(f"[ALARM] Sistem nije armed — alarm se ne aktivira (razlog: {reason})")
+        return
     if not system_state["is_alarm_active"]:
         system_state["is_alarm_active"] = True
         system_state["alarm_reason"] = reason or "Nepoznat uzrok"
@@ -311,12 +317,20 @@ def correct_pin(entered):
 def manage_alarm_system(entered_pin):
     """
     Upravljanje alarmom na osnovu unesenog PIN-a.
-    - Ako je PIN 4321 → arm sistem za 10s (bez obzira na trenutno stanje)
+    - Ako je PIN 4321 → arm sistem za 10s + grace period za otvorena vrata
     - Ako je PIN tačan (1234) i alarm je aktivan → ugasi alarm i disarm sistem
-    - Ako je PIN tačan (1234) i sistem je disarmed → arm za 10s
+    - Ako je PIN tačan (1234) i sistem je disarmed → arm za 10s + grace period
     - Ako je PIN netačan → ne radi ništa
     """
+    def apply_grace_period():
+        """Ako su DS1 ili DS2 otvoreni, postavi grace period da ne pale alarm."""
+        for ds_key in ["DS1", "DS2"]:
+            if system_state["ds_open_since"][ds_key] is not None:
+                system_state["ds_grace_period"][ds_key] = True
+                print(f"[PIN] Grace period aktiviran za {ds_key}")
+
     if entered_pin == ARM_PIN:
+        apply_grace_period()
         if not system_state["is_system_armed"]:
             Timer(10, arm_system).start()
             print("🔒 Arm PIN (4321) — arming system in 10s")
@@ -325,6 +339,7 @@ def manage_alarm_system(entered_pin):
         return
 
     if correct_pin(entered_pin):
+        apply_grace_period()
         if system_state["is_alarm_active"]:
             system_state["is_system_armed"] = False
             deactivate_alarm()
@@ -492,6 +507,7 @@ def handle_event(data, topic):
                 Timer(DOOR_OPEN_ALARM_DELAY, lambda: check_ds_alarm("DS1")).start()
         else:
             system_state["ds_open_since"]["DS1"] = None
+            system_state["ds_grace_period"]["DS1"] = False
             if system_state["ds_alarm_active"]["DS1"]:
                 system_state["ds_alarm_active"]["DS1"] = False
                 # Ukloni DS1 iz aktivnih triggera
@@ -514,6 +530,7 @@ def handle_event(data, topic):
                 Timer(DOOR_OPEN_ALARM_DELAY, lambda: check_ds_alarm("DS2")).start()
         else:
             system_state["ds_open_since"]["DS2"] = None
+            system_state["ds_grace_period"]["DS2"] = False
             if system_state["ds_alarm_active"]["DS2"]:
                 system_state["ds_alarm_active"]["DS2"] = False
                 # Ukloni DS2 iz aktivnih triggera
@@ -659,7 +676,7 @@ def simulate_sensor():
             "message": "Scenarij 3: DS1 otvoren — alarm aktivira se za 5s ako vrata ostanu otvorena"
         })
 
-    elif scenario == "6":
+    elif scenario == "7":
         magnitude = 2.5
         mqtt_client.publish("pi2/gsg", json.dumps({
             "measurement": "pi2/gsg",
@@ -671,7 +688,7 @@ def simulate_sensor():
         }), qos=1)
         return jsonify({
             "status": "success",
-            "message": f"Scenarij 6: GSG pomeraj detektovan ({magnitude}g) — alarm aktiviran"
+            "message": f"Scenarij 7: GSG pomeraj detektovan ({magnitude}g) — alarm aktiviran"
         })
 
     return jsonify({"status": "error", "message": "Nepoznat scenarij"}), 400
