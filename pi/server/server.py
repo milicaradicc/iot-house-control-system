@@ -1,3 +1,5 @@
+import random
+
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from influxdb_client import InfluxDBClient, Point, WritePrecision
@@ -676,6 +678,38 @@ def simulate_sensor():
             "message": "Scenarij 3: DS1 otvoren — alarm aktivira se za 5s ako vrata ostanu otvorena"
         })
 
+    elif scenario == "5":
+        current_people = system_state.get('people_count', 0)
+        dpirs_sensors = [
+            {"topic": "pi1/dpir1", "name": "DPIR1"},
+            {"topic": "pi2/dpir2", "name": "DPIR2"},
+            {"topic": "pi3/dpir3", "name": "DPIR3"}
+        ]
+
+        # chosen_sensor = {"topic": "pi2/dpir2", "name": "DPIR2"}
+        chosen_sensor = random.choice(dpirs_sensors)
+        print(f"Chosen sensor: {chosen_sensor}")
+        payload = json.dumps({
+            "measurement": chosen_sensor["topic"],
+            "value": 1,
+            "simulated": True,
+            "runs_on": "flask",
+            "name": chosen_sensor["name"]
+        })
+
+        mqtt_client.publish(chosen_sensor["topic"], payload, qos=1)
+
+        if current_people == 0:
+            return jsonify({
+                "status": "success",
+                "message": f"Scenarij 5: Pokret na {chosen_sensor['name']} detektovan. Objekt je prazan -> ALARM!"
+            })
+        else:
+            return jsonify({
+                "status": "success",
+                "message": f"Scenarij 5: Pokret na {chosen_sensor['name']} detektovan, ali ima {current_people} osoba. Nema alarma."
+            })
+
     elif scenario == "7":
         magnitude = 2.5
         mqtt_client.publish("pi2/gsg", json.dumps({
@@ -690,6 +724,7 @@ def simulate_sensor():
             "status": "success",
             "message": f"Scenarij 7: GSG pomeraj detektovan ({magnitude}g) — alarm aktiviran"
         })
+
 
     return jsonify({"status": "error", "message": "Nepoznat scenarij"}), 400
 
