@@ -603,9 +603,23 @@ def handle_event(data, topic):
                 system_state["last_dht_readings"][dht_name]["hum"] = value
 
     elif topic == "pi3/ir":
+        ir_commands = {
+            "0x300ff22dd": "off",
+            "0x300ffc23d": "red",
+            "0x300ff629d": "green",
+            "0x300ffa857": "blue",
+            "0x300ff9867": "white",
+            "0x300ffb04f": "yellow",
+            "0x300ff02fd": "purple",
+            "0x300ffc23f": "light blue"
+        }
+
+        target_color = ir_commands.get(value, "off")
+
         system_state["last_ir"] = value
-        target = "off" if value == "POWER" else value
-        mqtt_client.publish("commands/PI3/BRGB", json.dumps({"color": target}))
+        mqtt_client.publish("commands/PI3/BRGB", json.dumps({"color": target_color}))
+
+        print(f"[PI3] IR Komanda: {value} -> Boja: {target_color}")
 
 
 # --- DHT LCD DISPLAY ---
@@ -725,6 +739,33 @@ def simulate_sensor():
             "message": f"Scenarij 7: GSG pomeraj detektovan ({magnitude}g) — alarm aktiviran"
         })
 
+    elif scenario == "9":
+        colors = [
+            {"command": "0x300ff22dd", "value": "off"},
+            {"command": "0x300ffc23d", "value": "red"},
+            {"command": "0x300ff629d", "value": "green"},
+            {"command": "0x300ffa857", "value": "blue"},
+            {"command": "0x300ff9867", "value": "white"},
+            {"command": "0x300ffb04f", "value": "yellow"},
+            {"command": "0x300ff02fd", "value": "purple"},
+            {"command": "0x300ffc23f", "value": "light blue"}
+        ]
+
+        color = random.choice(colors)
+        payload = json.dumps({
+            "measurement": "pi3/ir",
+            "simulated": True,
+            "runs_on": "flask",
+            "name": "IR",
+            "value": color["command"]
+        })
+
+        mqtt_client.publish("pi3/ir", payload, qos=1)
+        return jsonify({
+            "status": "success",
+            "message": f"Scenarij 9: Primljena je komanda {color['command']} — boja: {color['value']} "
+        })
+
 
     return jsonify({"status": "error", "message": "Nepoznat scenarij"}), 400
 
@@ -806,10 +847,12 @@ def submit_pin():
     })
 
 
+
 @app.route('/rgb/set', methods=['POST'])
 def set_rgb():
     content = request.json
-    color = content.get('color', 'off')
+    print(content)
+    color = content.get('color')
     system_state["current_rgb"] = color
     mqtt_client.publish("commands/PI3/BRGB", json.dumps({"color": color}))
     return jsonify({"status": "success", "message": f"RGB set to {color}"})

@@ -61,8 +61,10 @@ def rgb_callback(color, publish_event, rgb_settings, code="RGB"):
 def start_rgb_listener(settings, rgb_instance):
     def on_message(client, userdata, msg):
         try:
+            print("upao")
             payload = json.loads(msg.payload.decode("utf-8"))
             color = payload.get("color")
+            print(payload.get("color"))
 
             if color == "red":
                 rgb_instance.red()
