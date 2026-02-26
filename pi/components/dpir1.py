@@ -9,6 +9,7 @@ dpir_batch = []
 publish_data_counter = 0
 publish_data_limit = 5
 counter_lock = threading.Lock()
+dpir_last_state = {}
 
 def publisher_task(event, dpir_batch):
     global publish_data_counter, publish_data_limit
@@ -27,9 +28,15 @@ publisher_thread = threading.Thread(target=publisher_task, args=(publish_event, 
 publisher_thread.daemon = True
 publisher_thread.start()
 
-
-def dpir1_callback(motion_detected, publish_event, dpir_settings, code="DPIR", verbose = False):
+def dpir1_callback(motion_detected, publish_event, dpir_settings, code="DPIR", verbose=True):
     global publish_data_counter, publish_data_limit
+
+    last = dpir_last_state.get(code, False)
+    dpir_last_state[code] = motion_detected
+
+    # Ignoriši ponovljeni YES — reaguj samo na NO→YES tranziciju
+    if motion_detected and last:
+        return
 
     if verbose:
         t = time.localtime()
@@ -41,47 +48,36 @@ def dpir1_callback(motion_detected, publish_event, dpir_settings, code="DPIR", v
 
     motion_payload = {
         "measurement": dpir_settings['topic'],
-        "simulated" : dpir_settings['simulated'],
+        "simulated": dpir_settings['simulated'],
         "runs_on": dpir_settings["runs_on"],
         "name": dpir_settings["name"],
-        "value": 1 if motion_detected else 0 
+        "value": 1 if motion_detected else 0
     }
 
     with counter_lock:
-        dpir_batch.append((dpir_settings['topic'], json.dumps(motion_payload), 0, True ))
+        dpir_batch.append((dpir_settings['topic'], json.dumps(motion_payload), 0, True))
         publish_data_counter += 1
 
     if publish_data_counter >= publish_data_limit:
         publish_event.set()
 
-
-def run_motion_sensor(settings, threads, stop_event, code = "DPIR"):
-
+def run_motion_sensor(settings, threads, stop_event, code="DPIR"):
     if settings.get('simulated', True):
         print("Starting DPIR1 simulator")
-
         t = threading.Thread(
             target=run_motion_sensor_simulator,
-            args=(dpir1_callback, stop_event, publish_event, settings)    
+            args=(dpir1_callback, stop_event, publish_event, settings,10)
         )
-
         t.start()
         threads.append(t)
-
-        print(code+ " simulator started")
-
+        print(code + " simulator started")
     else:
         from sensors.dpir1 import DPIR1Sensor, run_dpir1_loop
-
         sensor = DPIR1Sensor(settings['pin'])
-
-        # FIXED: Added publish_event and settings parameters
         t = threading.Thread(
             target=run_dpir1_loop,
             args=(sensor, settings.get('delay', 0.5), dpir1_callback, stop_event, code, publish_event, settings)
         )
-
         t.start()
         threads.append(t)
-
         print("DPIR1 hardware loop started")

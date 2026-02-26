@@ -21,13 +21,12 @@ def publisher_task(event, dus_batch):
         print(f'published {publish_data_limit} dus values')
         event.clear()
 
-
 publish_event = threading.Event()
 publisher_thread = threading.Thread(target=publisher_task, args=(publish_event, dus_batch))
 publisher_thread.daemon = True
 publisher_thread.start()
 
-def dus_callback(distance, publish_event, dus_settings, code = "DUS", verbose = False):
+def dus_callback(distance, publish_event, dus_settings, code="DUS", verbose=True):
     global publish_data_counter, publish_data_limit
 
     if verbose:
@@ -35,7 +34,8 @@ def dus_callback(distance, publish_event, dus_settings, code = "DUS", verbose = 
         print("="*20)
         print(f"Timestamp: {time.strftime('%H:%M:%S', t)}")
         print(f"Code: {code}")
-        print(f"Distance: {distance}")
+        print(f"Distance: {distance:.2f} cm")
+        print("="*20)
 
     distance_payload = {
         "measurement": dus_settings['topic'],
@@ -56,7 +56,10 @@ def run_ultrasonic_door_sensor(settings, threads, stop_event, code):
     if settings['simulated']:
         from simulators.dus import run_ultrasonic_door_sensor_simulator
         print("Starting dus1 simulator...")
-        dus1_thread = threading.Thread(target= run_ultrasonic_door_sensor_simulator, args=(2, dus_callback, stop_event, publish_event, settings))
+        dus1_thread = threading.Thread(
+            target=run_ultrasonic_door_sensor_simulator,
+            args=(10, dus_callback, stop_event, publish_event, settings)
+        )
         dus1_thread.start()
         threads.append(dus1_thread)
         print("DUS1 simulator started!")
@@ -64,7 +67,10 @@ def run_ultrasonic_door_sensor(settings, threads, stop_event, code):
         from sensors.dus import run_dus_loop, DoorUltrasonicSensor
         print("Starting dus1 loop...")
         dus = DoorUltrasonicSensor(settings['trigger_pin'], settings['echo_pin'])
-        dus1_thread = threading.Thread(target= run_dus_loop, args=(dus, 2, dus_callback, stop_event, publish_event, settings))
+        dus1_thread = threading.Thread(
+            target=run_dus_loop,
+            args=(dus, 10, dus_callback, stop_event, code, publish_event, settings)
+        )
         dus1_thread.start()
         threads.append(dus1_thread)
         print("DUS1 loop started!")
