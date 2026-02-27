@@ -470,21 +470,30 @@ def handle_event(data, topic):
             print("[DPIR1] 💡 LED auto-OFF after 10s")
         Timer(10, turn_off_dl).start()
 
-        entered = handle_motion_event("pi1/dpir1", "DUS1")
-        if entered is False and system_state["people_count"] == 0 and system_state["is_system_armed"]:
+        # FIX: alarm provjera je nezavisna od handle_motion_event
+        # Ako nema ljudi u objektu, svaki pokret = alarm (bez obzira na DUS)
+        if system_state["people_count"] == 0 and system_state["is_system_armed"]:
             activate_alarm(
-                reason="Kretanje detektovano na izlazu, nema registrovanih osoba unutra",
-                sensors=["DPIR1", "DUS1"]
+                reason="Kretanje detektovano na ulazu/hodniku (DPIR1), nema registrovanih osoba unutra",
+                sensors=["DPIR1"]
             )
+        else:
+            # Ima ljudi — pokušaj odrediti ulaz/izlaz na osnovu DUS-a
+            entered = handle_motion_event("pi1/dpir1", "DUS1")
+            print(f"[DPIR1] handle_motion_event rezultat: {entered}")
 
     elif topic == "pi2/dpir2" and value == 1:
         system_state["last_dpir"]["DPIR2"] = time.time()
-        entered = handle_motion_event("pi2/dpir2", "DUS2")
-        if entered is False and system_state["people_count"] == 0 and system_state["is_system_armed"]:
+
+        # FIX: ista logika kao DPIR1
+        if system_state["people_count"] == 0 and system_state["is_system_armed"]:
             activate_alarm(
-                reason="Kretanje detektovano na izlazu (ulaz 2), nema registrovanih osoba unutra",
-                sensors=["DPIR2", "DUS2"]
+                reason="Kretanje detektovano u kuhinji (DPIR2), nema registrovanih osoba unutra",
+                sensors=["DPIR2"]
             )
+        else:
+            entered = handle_motion_event("pi2/dpir2", "DUS2")
+            print(f"[DPIR2] handle_motion_event rezultat: {entered}")
 
     elif topic == "pi3/dpir3" and value == 1:
         system_state["last_dpir"]["DPIR3"] = time.time()
