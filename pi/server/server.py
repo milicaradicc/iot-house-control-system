@@ -519,46 +519,54 @@ def handle_event(data, topic):
         if value == 1 or value is True:
             if system_state["ds_open_since"]["DS1"] is None:
                 system_state["ds_open_since"]["DS1"] = time.time()
-                print(f"[DS1] 🚪 Vrata otvorena — čekam {DOOR_OPEN_ALARM_DELAY}s...")
+                print(f"[DS1] Vrata otvorena -- cekam {DOOR_OPEN_ALARM_DELAY}s...")
                 Timer(DOOR_OPEN_ALARM_DELAY, lambda: check_ds_alarm("DS1")).start()
         else:
             system_state["ds_open_since"]["DS1"] = None
             system_state["ds_grace_period"]["DS1"] = False
             if system_state["ds_alarm_active"]["DS1"]:
                 system_state["ds_alarm_active"]["DS1"] = False
-                # Ukloni DS1 iz aktivnih triggera
                 system_state["alarm_triggers"] = [t for t in system_state["alarm_triggers"] if t != "DS1"]
-                print("[DS1] 🚪 Vrata zatvorena — DS1 uklonjen iz alarma")
-                if not any_ds_alarm_active():
+                print("[DS1] Vrata zatvorena -- DS1 uklonjen iz alarma")
+                # FIX: gasi alarm samo ako nema ni DS ni non-DS triggera
+                non_ds_triggers = [t for t in system_state["alarm_triggers"] if not t.startswith("DS")]
+                if not any_ds_alarm_active() and not non_ds_triggers:
                     deactivate_alarm()
+                    print("[DS1] Nema vise aktivnih triggera -- alarm deaktiviran")
+                elif any_ds_alarm_active():
+                    remaining_ds = [t for t in system_state["alarm_triggers"] if t.startswith("DS")]
+                    system_state["alarm_reason"] = f"Vrata {', '.join(remaining_ds)} jos uvijek otvorena"
+                    print(f"[DS1] Alarm ostaje zbog DS: {remaining_ds}")
                 else:
-                    # Drugi DS još aktivan — ažuriraj reason
-                    remaining = [t for t in system_state["alarm_triggers"] if t.startswith("DS")]
-                    system_state["alarm_reason"] = f"Vrata {', '.join(remaining)} još uvijek otvorena"
-                    print(f"[DS1] Alarm ostaje aktivan zbog: {remaining}")
+                    system_state["alarm_reason"] = f"Alarm aktivan zbog: {', '.join(non_ds_triggers)}"
+                    print(f"[DS1] Alarm ostaje zbog non-DS triggera: {non_ds_triggers}")
 
     elif topic == "pi2/ds2":
         system_state["last_ds_readings"]["DS2"] = value
         if value == 1:
             if system_state["ds_open_since"]["DS2"] is None:
                 system_state["ds_open_since"]["DS2"] = time.time()
-                print(f"[DS2] 🚪 Vrata otvorena — čekam {DOOR_OPEN_ALARM_DELAY}s...")
+                print(f"[DS2] Vrata otvorena -- cekam {DOOR_OPEN_ALARM_DELAY}s...")
                 Timer(DOOR_OPEN_ALARM_DELAY, lambda: check_ds_alarm("DS2")).start()
         else:
             system_state["ds_open_since"]["DS2"] = None
             system_state["ds_grace_period"]["DS2"] = False
             if system_state["ds_alarm_active"]["DS2"]:
                 system_state["ds_alarm_active"]["DS2"] = False
-                # Ukloni DS2 iz aktivnih triggera
                 system_state["alarm_triggers"] = [t for t in system_state["alarm_triggers"] if t != "DS2"]
-                print("[DS2] 🚪 Vrata zatvorena — DS2 uklonjen iz alarma")
-                if not any_ds_alarm_active():
+                print("[DS2] Vrata zatvorena -- DS2 uklonjen iz alarma")
+                # FIX: gasi alarm samo ako nema ni DS ni non-DS triggera
+                non_ds_triggers = [t for t in system_state["alarm_triggers"] if not t.startswith("DS")]
+                if not any_ds_alarm_active() and not non_ds_triggers:
                     deactivate_alarm()
+                    print("[DS2] Nema vise aktivnih triggera -- alarm deaktiviran")
+                elif any_ds_alarm_active():
+                    remaining_ds = [t for t in system_state["alarm_triggers"] if t.startswith("DS")]
+                    system_state["alarm_reason"] = f"Vrata {', '.join(remaining_ds)} jos uvijek otvorena"
+                    print(f"[DS2] Alarm ostaje zbog DS: {remaining_ds}")
                 else:
-                    # Drugi DS još aktivan — ažuriraj reason
-                    remaining = [t for t in system_state["alarm_triggers"] if t.startswith("DS")]
-                    system_state["alarm_reason"] = f"Vrata {', '.join(remaining)} još uvijek otvorena"
-                    print(f"[DS2] Alarm ostaje aktivan zbog: {remaining}")
+                    system_state["alarm_reason"] = f"Alarm aktivan zbog: {', '.join(non_ds_triggers)}"
+                    print(f"[DS2] Alarm ostaje zbog non-DS triggera: {non_ds_triggers}")
 
     elif topic == "pi1/dl":
         system_state["last_dl"] = bool(value)
