@@ -101,9 +101,9 @@ def on_connect(client, userdata, flags, rc, properties=None):
             client.subscribe(topic)
             print(f"📡 Subscribed to: {topic}")
         for t in [
-            "pi3/dht1/temp", "pi3/dht1/humidity",
-            "pi3/dht2/temp", "pi3/dht2/humidity",
-            "pi2/dht3/temp", "pi2/dht3/humidity",
+            "pi3/dht1/temperature", "pi3/dht1/humidity",
+            "pi3/dht2/temperature", "pi3/dht2/humidity",
+            "pi2/dht3/temperature", "pi2/dht3/humidity",
         ]:
             client.subscribe(t)
             print(f"📡 Subscribed to: {t}")
@@ -596,15 +596,15 @@ def handle_event(data, topic):
             system_state["entered_pin"] = ""
 
     # DHT — subtopic format
-    elif topic == "pi3/dht1/temp":
+    elif topic == "pi3/dht1/temperature":
         system_state["last_dht_readings"]["Bedroom DHT"]["temp"] = value
     elif topic == "pi3/dht1/humidity":
         system_state["last_dht_readings"]["Bedroom DHT"]["hum"] = value
-    elif topic == "pi3/dht2/temp":
+    elif topic == "pi3/dht2/temperature":
         system_state["last_dht_readings"]["Master Bedroom DHT"]["temp"] = value
     elif topic == "pi3/dht2/humidity":
         system_state["last_dht_readings"]["Master Bedroom DHT"]["hum"] = value
-    elif topic == "pi2/dht3/temp":
+    elif topic == "pi2/dht3/temperature":
         system_state["last_dht_readings"]["Kitchen DHT"]["temp"] = value
     elif topic == "pi2/dht3/humidity":
         system_state["last_dht_readings"]["Kitchen DHT"]["hum"] = value

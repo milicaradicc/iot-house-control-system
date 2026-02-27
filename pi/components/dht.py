@@ -36,7 +36,7 @@ def dht_callback(humidity, temperature, publish_event, dht_settings, code="DHT1"
     topic = dht_settings['topic']
     
     # Kreiranje unificiranog payload-a
-    for m_type, val in [("temp", temperature), ("humidity", humidity)]:
+    for m_type, val in [("temperature", temperature), ("humidity", humidity)]:
         payload = {
             "measurement": f"{topic}/{m_type}",
             "simulated": dht_settings['simulated'],

@@ -52,7 +52,7 @@ def rgb_callback(color, publish_event, rgb_settings, code="RGB"):
     with counter_lock:
         rgb_batch.append((rgb_settings['topic'], json.dumps(color_payload), 0, True))
         publish_data_counter += 1
-        print(f"[RGB] Prepared to publish: {color_payload}")
+        # print(f"[RGB] Prepared to publish: {color_payload}")
 
     if publish_data_counter >= publish_data_limit:
         publish_event.set()
