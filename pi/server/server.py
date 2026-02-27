@@ -617,6 +617,7 @@ def handle_event(data, topic):
         target_color = ir_commands.get(value, "off")
 
         system_state["last_ir"] = value
+        print(system_state["last_ir"])
         mqtt_client.publish("commands/PI3/BRGB", json.dumps({"color": target_color}))
 
         print(f"[PI3] IR Komanda: {value} -> Boja: {target_color}")
@@ -634,6 +635,7 @@ def display_dhts():
     }
     mqtt_client.publish("commands/PI3/LCD", json.dumps(payload))
     system_state["current_dht_index"] = (idx + 1) % len(system_state["dht_names_list"])
+    # print("🌡️/🌫️" + str(payload))
     Timer(10, display_dhts).start()
 
 
