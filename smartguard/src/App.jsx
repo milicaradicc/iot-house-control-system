@@ -562,12 +562,30 @@ const SCENARIOS = [
     ledDuration: null,
   },
   {
+    id: "5",
+    icon: "🧍",
+    label: "Scenarij 5",
+    desc: "DPIR1-3 detektovao pokret i 0 osoba u objektu >  ALARM",
+    detail: "Simulira detekciju pokreta na uredjajima DPIR1-3. Backend proverava da li koliko je osoba u objektu. Ako je 0 onda aktivira alarm. ",
+    color: "#ff9d6b",
+    ledDuration: null,
+  },
+  {
     id: "6",
     icon: "🚰",
     label: "Scenarij 6",
     desc: "GSG pomeraj slavine → ALARM",
     detail: "Simulira značajan pomeraj gyroscopea (GSG) pričvršćenog za slavinu. Backend šalje MQTT poruku na pi2/gsg sa movement=1 i magnitudom 2.5g, što odmah aktivira alarm.",
     color: "#a855f7",
+    ledDuration: null,
+  },
+  {
+    id: "9",
+    icon: "🎨",
+    label: "Scenarij 9",
+    desc: "IR senzor -> rgb dioda",
+    detail: "Simulira primanje komande za podesavanja boje ili iskljucivajne diode. Backend salje MQTT poruku na pi3/ir, sto utice na boju rgb diode. ",
+    color: "#6ba5ff",
     ledDuration: null,
   },
 ];
@@ -1234,7 +1252,6 @@ export default function SmartHomeDashboard() {
               <SensorRow label="DHT2 Temp" value={fmtNum(masterBedroom.temp)} unit="°C" active={masterBedroom.temp !== null} color="#f97316" />
               <SensorRow label="DHT2 Humidity" value={fmtNum(masterBedroom.hum)} unit="%" active={masterBedroom.hum !== null} color="#06b6d4" />
               <SensorRow label="DPIR3 Motion" value={sensors.dpir3 ? "DETECTED" : "CLEAR"} active={sensors.dpir3} color="#f59e0b" />
-              <SensorRow label="IR Remote" value={sensors.ir ? String(sensors.ir).toUpperCase() : "—"} active={sensors.ir !== null} color="#6366f1" />
               <SensorRow label="BRGB Light" value={sensors.rgb?.toUpperCase() || "—"} active={sensors.rgb !== "off"} color="#a855f7" />
             </Card>
 
