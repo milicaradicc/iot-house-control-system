@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="4b413074-0535-4670-9cb5-c1320f247405" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/image-1.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/image-2.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/image.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/.env" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/broker-config/mosquitto.conf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/broker-data/mosquitto.db" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/docker-compose.yml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/data/_internal/_series/00/0000" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/data/_internal/_series/01/0000" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/data/_internal/_series/02/0000" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/data/_internal/_series/03/0000" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/data/_internal/_series/04/0000" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/data/_internal/_series/05/0000" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/data/_internal/_series/06/0000" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/data/_internal/_series/07/0000" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/data/_internal/monitor/1/fields.idx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/data/_internal/monitor/3/fields.idx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/data/example_bucket/_series/00/0000" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/data/example_bucket/_series/01/0000" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/data/example_bucket/_series/02/0000" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/data/example_bucket/_series/03/0000" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/data/example_bucket/_series/04/0000" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/data/example_bucket/_series/05/0000" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/data/example_bucket/_series/06/0000" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/data/example_bucket/_series/07/0000" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/data/example_bucket/autogen/2/fields.idx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/engine/data/742fef24227ef2db/_series/00/0000" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/engine/data/742fef24227ef2db/_series/01/0000" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/engine/data/742fef24227ef2db/_series/02/0000" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/engine/data/742fef24227ef2db/_series/03/0000" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/engine/data/742fef24227ef2db/_series/04/0000" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/engine/data/742fef24227ef2db/_series/05/0000" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/engine/data/742fef24227ef2db/_series/06/0000" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/engine/data/742fef24227ef2db/_series/07/0000" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/engine/data/742fef24227ef2db/autogen/1/index/0/L0-00000001.tsl" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/engine/data/742fef24227ef2db/autogen/1/index/0/MANIFEST" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/engine/data/742fef24227ef2db/autogen/1/index/1/L0-00000001.tsl" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/engine/data/742fef24227ef2db/autogen/1/index/1/MANIFEST" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/engine/data/742fef24227ef2db/autogen/1/index/2/L0-00000001.tsl" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/engine/data/742fef24227ef2db/autogen/1/index/2/MANIFEST" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/engine/data/742fef24227ef2db/autogen/1/index/3/MANIFEST" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/engine/data/742fef24227ef2db/autogen/1/index/4/L0-00000001.tsl" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/engine/data/742fef24227ef2db/autogen/1/index/4/MANIFEST" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/engine/data/742fef24227ef2db/autogen/1/index/5/L0-00000001.tsl" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/engine/data/742fef24227ef2db/autogen/1/index/5/MANIFEST" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/engine/data/742fef24227ef2db/autogen/1/index/6/MANIFEST" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/engine/data/742fef24227ef2db/autogen/1/index/7/L0-00000001.tsl" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/engine/data/742fef24227ef2db/autogen/1/index/7/MANIFEST" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/influxd.bolt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/influxd.sqlite" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/meta/meta.db" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/wal/_internal/monitor/1/_00001.wal" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/wal/_internal/monitor/3/_00001.wal" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/infrastructure/influxdb/data/wal/example_bucket/autogen/2/_00001.wal" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/server.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation/broker_settings.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation/components/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation/components/db.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation/components/dl.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation/components/dms.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation/components/dpir1.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation/components/ds.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation/components/dus.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation/main.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation/sensors/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation/sensors/dms.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation/sensors/dpir1.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation/sensors/ds.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation/sensors/dus.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation/settings.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation/settings.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation/simulators/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation/simulators/db.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation/simulators/dl.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation/simulators/dms.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation/simulators/dpir1.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation/simulators/ds.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation/simulators/dus.py" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "customColor": "",
+  "associatedIndex": 5
+}]]></component>
+  <component name="ProjectId" id="39kpuFB1b35NoX7UlEu8VSav56q" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "feature/web-application"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-890ed5b35930-d9c5bdb153f4-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-251.23774.444" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="4b413074-0535-4670-9cb5-c1320f247405" name="Changes" comment="" />
+      <created>1771250145667</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1771250145667</updated>
+    </task>
+    <servers />
+  </component>
+</project>
