@@ -636,9 +636,10 @@ def handle_event(data, topic):
             "0x300ffc23f": "light blue"
         }
 
-        target_color = ir_commands.get(value, "off")
+        target_color = ir_commands.get(value)
 
         system_state["last_ir"] = value
+        system_state["current_rgb"] = target_color
         print(system_state["last_ir"])
         mqtt_client.publish("commands/PI3/BRGB", json.dumps({"color": target_color}))
 

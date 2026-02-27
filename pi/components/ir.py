@@ -26,7 +26,7 @@ publisher_thread = threading.Thread(target=publisher_task, args=(publish_event, 
 publisher_thread.daemon = True
 publisher_thread.start()
 
-def ir_callback(command, publish_event, ir_settings, code = "IR", verbose = False):
+def ir_callback(command, publish_event, ir_settings, code = "IR", verbose = False, force=False):
     global publish_data_counter, publish_data_limit
 
     if verbose:
@@ -34,7 +34,7 @@ def ir_callback(command, publish_event, ir_settings, code = "IR", verbose = Fals
         print("="*20)
         print(f"Timestamp: {time.strftime('%H:%M:%S', t)}")
         print(f"Code: {code}")
-        print(f"Command: {command}%")
+        print(f"Command: {command}")
 
     command_payload = {
         "measurement": ir_settings['topic'],          
@@ -48,7 +48,7 @@ def ir_callback(command, publish_event, ir_settings, code = "IR", verbose = Fals
         ir_batch.append((ir_settings['topic'], json.dumps(command_payload), 0, True))
         publish_data_counter += 1
 
-    if publish_data_counter >= publish_data_limit:
+    if force or publish_data_counter >= publish_data_limit:
         publish_event.set()
 
 

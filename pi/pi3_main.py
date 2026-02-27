@@ -88,8 +88,9 @@ if __name__ == "__main__":
                 shutdown()
             elif cmd in console_ir_map:
                 hex_code = console_ir_map[cmd]
-                ir_callback(hex_code, publish_event, ir_settings)
-                publish_event.set()
+                print(hex_code)
+                ir_callback(hex_code, publish_event, ir_settings, verbose=True, force=False)
+                # publish_event.set()
             else:
                 print("Dostupno: off, red, green, blue, yellow, light blue, purple, white, exit")
 
