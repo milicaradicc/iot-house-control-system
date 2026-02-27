@@ -17,8 +17,7 @@ class SegmentDisplaySimulator:
         
         # MQTT klijent za prijem komandi
         self.mqtt_client = mqtt.Client(
-            client_id=f"sd_simulator_{id(self)}",
-            callback_api_version=mqtt.CallbackAPIVersion.VERSION2
+            client_id=f"sd_simulator_{id(self)}"
         )
         self.mqtt_client.on_connect = self._on_connect
         self.mqtt_client.on_message = self._on_message
@@ -31,7 +30,7 @@ class SegmentDisplaySimulator:
         except Exception as e:
             print(f"[Timer] Failed to connect to MQTT: {e}")
     
-    def _on_connect(self, client, userdata, flags, rc, properties=None):
+    def _on_connect(self, client, userdata, flags, rc):
         if rc == 0:
             client.subscribe("timer/set")
             client.subscribe("timer/increment")
@@ -81,13 +80,11 @@ class SegmentDisplaySimulator:
             
             with self.lock:
                 if self.is_blinking:
-                    # Treperenje - naizmenično prikazuje 0000 i prazan displej
                     display_value = "0000" if int(time.time()) % 2 == 0 else "    "
                 else:
                     if self.remaining_time > 0:
                         self.remaining_time -= 1
                         
-                        # Formatiranje u MMSS (bez dvotačke)
                         mins, secs = divmod(self.remaining_time, 60)
                         display_value = f"{mins:02d}{secs:02d}"
                         
@@ -97,7 +94,6 @@ class SegmentDisplaySimulator:
                     else:
                         display_value = "0000"
             
-            # Slanje vrednosti ka MQTT-u
             self.callback(display_value)
             time.sleep(1)
     

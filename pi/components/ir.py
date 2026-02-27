@@ -26,7 +26,7 @@ publisher_thread = threading.Thread(target=publisher_task, args=(publish_event, 
 publisher_thread.daemon = True
 publisher_thread.start()
 
-def ir_callback(command, publish_event, ir_settings, code = "IR", verbose = False):
+def ir_callback(command, publish_event, ir_settings, code = "IR", verbose = False, force=False):
     global publish_data_counter, publish_data_limit
 
     if verbose:
@@ -34,7 +34,7 @@ def ir_callback(command, publish_event, ir_settings, code = "IR", verbose = Fals
         print("="*20)
         print(f"Timestamp: {time.strftime('%H:%M:%S', t)}")
         print(f"Code: {code}")
-        print(f"Command: {command}%")
+        print(f"Command: {command}")
 
     command_payload = {
         "measurement": ir_settings['topic'],          
@@ -48,7 +48,7 @@ def ir_callback(command, publish_event, ir_settings, code = "IR", verbose = Fals
         ir_batch.append((ir_settings['topic'], json.dumps(command_payload), 0, True))
         publish_data_counter += 1
 
-    if publish_data_counter >= publish_data_limit:
+    if force or publish_data_counter >= publish_data_limit:
         publish_event.set()
 
 
@@ -60,7 +60,7 @@ def run_bedroom_ir(settings, threads, stop_event):
         print("Starting ir sumilator")
         from simulators.ir import run_bedroom_ir_simulator
         print("Starting ir simulator...")
-        ir_thread = threading.Thread(target = run_bedroom_ir_simulator, args=(2, ir_callback, stop_event, publish_event, settings))
+        ir_thread = threading.Thread(target = run_bedroom_ir_simulator, args=(10, ir_callback, stop_event, publish_event, settings))
         ir_thread.start()
         threads.append(ir_thread)
         print("IR sumilator started")
@@ -68,7 +68,7 @@ def run_bedroom_ir(settings, threads, stop_event):
         from sensors.ir import run_ir_loop, IR
         print("Starting ir loop")
         ir = IR(settings['pin'])
-        ir_thread = threading.Thread(target=run_ir_loop, args=(ir, 2, ir_callback, stop_event, publish_event, settings))
+        ir_thread = threading.Thread(target=run_ir_loop, args=(ir, 10, ir_callback, stop_event, publish_event, settings))
         ir_thread.start()
         threads.append(ir_thread)
         print("IR loop started")

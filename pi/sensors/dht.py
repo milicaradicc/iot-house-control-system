@@ -1,113 +1,62 @@
 import RPi.GPIO as GPIO
 import time
-from threading import Event
-
 
 class DHT(object):
-    DHTLIB_OK = 0
-    DHTLIB_ERROR_CHECKSUM = -1
-    DHTLIB_ERROR_TIMEOUT = -2
-    DHTLIB_INVALID_VALUE = -999
-
-    DHTLIB_DHT11_WAKEUP = 0.020
-    DHTLIB_TIMEOUT = 0.0001
-
-    humidity = 0
-    temperature = 0
-
     def __init__(self, pin):
         self.pin = pin
-        self.bits = [0, 0, 0, 0, 0]
+        self.temperature = 0
+        self.humidity = 0
 
-    def _read_raw(self, pin, wakeupDelay):
-        mask = 0x80
-        idx = 0
-        self.bits = [0, 0, 0, 0, 0]
-        GPIO.setup(pin, GPIO.OUT)
-        GPIO.output(pin, GPIO.LOW)
-        time.sleep(wakeupDelay)
-        GPIO.output(pin, GPIO.HIGH)
-        GPIO.setup(pin, GPIO.IN)
+    def read_sensor(self):
+        # Inicijalizacija signala
+        GPIO.setup(self.pin, GPIO.OUT)
+        GPIO.output(self.pin, GPIO.LOW)
+        time.sleep(0.02) # Start signal
+        GPIO.output(self.pin, GPIO.HIGH)
+        GPIO.setup(self.pin, GPIO.IN)
 
-        loopCnt = self.DHTLIB_TIMEOUT
-        t = time.time()
-        while GPIO.input(pin) == GPIO.LOW:
-            if (time.time() - t) > loopCnt:
-                return self.DHTLIB_ERROR_TIMEOUT
+        # Čekanje na odziv senzora (80us Low, 80us High)
+        t0 = time.time()
+        while GPIO.input(self.pin) == GPIO.HIGH:
+            if time.time() - t0 > 0.001: return -2 # Timeout
 
-        t = time.time()
-        while GPIO.input(pin) == GPIO.HIGH:
-            if (time.time() - t) > loopCnt:
-                return self.DHTLIB_ERROR_TIMEOUT
+        while GPIO.input(self.pin) == GPIO.LOW: pass
+        while GPIO.input(self.pin) == GPIO.HIGH: pass
 
-        for i in range(0, 40, 1):
-            t = time.time()
-            while GPIO.input(pin) == GPIO.LOW:
-                if (time.time() - t) > loopCnt:
-                    return self.DHTLIB_ERROR_TIMEOUT
+        bits_time = []
+        for i in range(40):
+            while GPIO.input(self.pin) == GPIO.LOW: pass
+            t_start = time.time()
+            while GPIO.input(self.pin) == GPIO.HIGH: pass
+            bits_time.append(time.time() - t_start)
 
-            t = time.time()
-            while GPIO.input(pin) == GPIO.HIGH:
-                if (time.time() - t) > loopCnt:
-                    return self.DHTLIB_ERROR_TIMEOUT
+        # Rekonstrukcija bajtova
+        res = [0] * 5
+        for i in range(40):
+            if bits_time[i] > 0.000048: # Granica za "1" na 48 mikrosekundi
+                res[i // 8] |= (1 << (7 - (i % 8)))
 
-            if (time.time() - t) > 0.00005:
-                self.bits[idx] |= mask
-
-            mask >>= 1
-            if mask == 0:
-                mask = 0x80
-                idx += 1
-
-        GPIO.setup(pin, GPIO.OUT)
-        GPIO.output(pin, GPIO.HIGH)
-        return self.DHTLIB_OK
-
-    def readSensor(self):
-        rv = self._read_raw(self.pin, self.DHTLIB_DHT11_WAKEUP)
-        if rv is not self.DHTLIB_OK:
-            self.humidity = self.DHTLIB_INVALID_VALUE
-            self.temperature = self.DHTLIB_INVALID_VALUE
-            return rv
-        self.humidity = self.bits[0]
-        self.temperature = self.bits[2] + self.bits[3] * 0.1
-        sumChk = ((self.bits[0] + self.bits[1] + self.bits[2] + self.bits[3]) & 0xFF)
-        if self.bits[4] is not sumChk:
-            return self.DHTLIB_ERROR_CHECKSUM
-        return self.DHTLIB_OK
-
-
-def parseCheckCode(code):
-    if code == 0:
-        return "DHTLIB_OK"
-    elif code == -1:
-        return "DHTLIB_ERROR_CHECKSUM"
-    elif code == -2:
-        return "DHTLIB_ERROR_TIMEOUT"
-    elif code == -999:
-        return "DHTLIB_INVALID_VALUE"
-
+        # Checksum provera
+        if res[4] == ((res[0] + res[1] + res[2] + res[3]) & 0xFF):
+            self.humidity = res[0]
+            self.temperature = res[2] + res[3] * 0.1
+            return 0 # Sve OK
+        return -1 # Checksum greška
 
 def run_dht_loop(dht, delay, callback, stop_event, code, publish_event, dht_settings):
-    try:
-        last_temperature = None
-        last_humidity = None
+    total, success = 0, 0
+    while not stop_event.is_set():
+        res = dht.read_sensor()
+        total += 1
+        if res == 0:
+            success += 1
+            callback(dht.humidity, dht.temperature, publish_event, dht_settings, code)
+        
+        rate = (success / total) * 100
+        status = "OK" if res == 0 else ("TIMEOUT" if res == -2 else "CHECKSUM_ERR")
+        print(f"[{code}] {status} | T: {dht.temperature}°C | Rate: {rate:.1f}%")
+        
+        # DHT11/22 zahtevaju bar 2s pauze između čitanja
+        stop_event.wait(timeout=max(delay, 2.0))
 
-        while not stop_event.is_set():
-            result = dht.readSensor()
-
-            if result == DHT.DHTLIB_OK:
-                humidity = dht.humidity
-                temperature = dht.temperature
-
-                if temperature != last_temperature or humidity != last_humidity:
-                    callback(humidity, temperature, publish_event, dht_settings, code)
-                    last_humidity = humidity
-                    last_temperature = temperature
-            else:
-                print(f"[DHT] Read error: {parseCheckCode(result)}")
-
-            time.sleep(delay)
-
-    finally:
-        GPIO.cleanup(dht.pin)
+    GPIO.cleanup(dht.pin)

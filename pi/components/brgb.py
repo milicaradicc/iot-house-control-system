@@ -52,7 +52,7 @@ def rgb_callback(color, publish_event, rgb_settings, code="RGB"):
     with counter_lock:
         rgb_batch.append((rgb_settings['topic'], json.dumps(color_payload), 0, True))
         publish_data_counter += 1
-        print(f"[RGB] Prepared to publish: {color_payload}")
+        # print(f"[RGB] Prepared to publish: {color_payload}")
 
     if publish_data_counter >= publish_data_limit:
         publish_event.set()
@@ -61,8 +61,10 @@ def rgb_callback(color, publish_event, rgb_settings, code="RGB"):
 def start_rgb_listener(settings, rgb_instance):
     def on_message(client, userdata, msg):
         try:
+            print("upao")
             payload = json.loads(msg.payload.decode("utf-8"))
             color = payload.get("color")
+            print(payload.get("color"))
 
             if color == "red":
                 rgb_instance.red()

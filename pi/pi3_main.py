@@ -1,11 +1,11 @@
 import threading
-import time
 import signal
 import sys
 
+
 from settings.settings import load_settings
 from components.dht import run_dht
-from components.ir import run_bedroom_ir
+from components.ir import run_bedroom_ir, ir_callback, publish_event
 from components.dpir1 import run_motion_sensor
 from components.brgb import run_bedroom_rgb, start_rgb_listener
 from components.lcd import run_living_room_lcd, start_lcd_listener
@@ -69,30 +69,30 @@ if __name__ == "__main__":
     lcd = run_living_room_lcd(lcd_settings, True)
     start_lcd_listener(lcd_settings, lcd)
 
+    console_ir_map = {
+        "off": "0x300ff22dd",
+        "red": "0x300ffc23d",
+        "green": "0x300ff629d",
+        "blue": "0x300ffa857",
+        "white": "0x300ff9867",
+        "yellow": "0x300ffb04f",
+        "purple": "0x300ff02fd",
+        "light blue": "0x300ffc23f"
+    }
+
     try:
         while True:
-            cmd = input("> ").strip().lower()
+            cmd = input("PI3-CONSOLE> ").strip().lower()
 
             if cmd == "exit":
                 shutdown()
-            elif cmd == "white":
-                rgb.white()
-            elif cmd == "red":
-                rgb.red()
-            elif cmd == "green":
-                rgb.green()
-            elif cmd == "blue":
-                rgb.blue()
-            elif cmd == "yellow":
-                rgb.yellow()
-            elif cmd == "light blue":
-                rgb.lightBlue()
-            elif cmd == "purple":
-                rgb.purple()
-            elif cmd == "turn off":
-                rgb.turnOff()
+            elif cmd in console_ir_map:
+                hex_code = console_ir_map[cmd]
+                print(hex_code)
+                ir_callback(hex_code, publish_event, ir_settings, verbose=True, force=False)
+                # publish_event.set()
             else:
-                print("Unknown command. Available: turn off, red, green, blue, purple, yellow, light blue, white, exit")
+                print("Dostupno: off, red, green, blue, yellow, light blue, purple, white, exit")
 
     except KeyboardInterrupt:
         shutdown()

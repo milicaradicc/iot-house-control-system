@@ -1,4 +1,4 @@
-from pi.actuators.dl import DoorLight
+from actuators.dl import DoorLight
 from simulators.dl import DLSimulator
 from settings.broker_settings import HOSTNAME, PORT
 
@@ -36,15 +36,19 @@ def publisher_task(event, dl_batch):
 def start_dl_listener(dl_settings, dl_instance):
     def on_message(client, userdata, msg):
         payload = json.loads(msg.payload.decode("utf-8"))
-        if payload.get("value") is True:
+        value = payload.get("value")
+        
+        if value is True:
             dl_instance.on()
-        else:
+        elif value is False:
             dl_instance.off()
+        else:
+            # Nema eksplicitne vrijednosti → toggle
+            dl_instance.toggle()
 
     client = mqtt.Client()
     client.on_message = on_message
     client.connect(HOSTNAME, PORT, 60)
-
     client.subscribe("commands/PI1/DL")
     client.loop_start()
 
