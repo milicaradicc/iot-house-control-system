@@ -24,9 +24,9 @@ bucket = settings["influxdb"]["bucket"]
 mqtt_host = settings["mqtt"]["broker"]
 mqtt_port = settings["mqtt"]["port"]
 
-DUS_HISTORY_WINDOW = 5
+DUS_HISTORY_WINDOW = 8          # FIX: povećano sa 5 → 8s da uhvati batch delay
 ENTRY_DISTANCE_THRESHOLD = 60
-MOTION_COOLDOWN = 10
+MOTION_COOLDOWN = 2             # FIX: smanjeno sa 10 → 2s, realno za jednu osobu
 DOOR_OPEN_ALARM_DELAY = 5
 
 ARM_PIN = "4321"
@@ -187,6 +187,7 @@ def get_recent_min_distance(dus_key):
     history = system_state["dus_history"][dus_key]
     recent = [e["distance"] for e in history if now - e["timestamp"] <= DUS_HISTORY_WINDOW]
     if not recent:
+        print(f"[DEBUG] {dus_key} — nema podataka u prozoru od {DUS_HISTORY_WINDOW}s")
         return None
     min_dist = min(recent)
     print(f"[DEBUG] {dus_key} min distance (last {DUS_HISTORY_WINDOW}s): {min_dist:.2f} cm")
@@ -202,31 +203,35 @@ def determine_entry_or_exit(dus_key):
 
 # --- MOTION HANDLING ---
 
-def _auto_off_dl():
-    system_state["last_dl"] = False
-    mqtt_client.publish("commands/PI1/DL", json.dumps({"value": False}))
-
-
 def handle_motion_event(dpir_topic, dus_key):
     now = time.time()
     last = system_state["last_motion_event"][dus_key]
-    if now - last < MOTION_COOLDOWN:
-        print(f"[{dpir_topic}] ⏳ Cooldown active, skipping event")
+    elapsed_since_last = now - last
+
+    if elapsed_since_last < MOTION_COOLDOWN:
+        print(f"[{dpir_topic}] ⏳ Cooldown aktivan ({elapsed_since_last:.1f}s < {MOTION_COOLDOWN}s) — skip")
         return None
 
     is_entering = determine_entry_or_exit(dus_key)
+
     if is_entering is None:
-        print(f"[{dpir_topic}] ⚠️  Motion detected but no recent DUS data from {dus_key}")
+        print(f"[{dpir_topic}] ⚠️  Motion detektovan ali nema DUS podataka u prozoru od {DUS_HISTORY_WINDOW}s")
+        # FIX: ne troši cooldown ako nema DUS podataka — ne ažuriraj last_motion_event
         return None
 
+    # FIX: ažuriraj cooldown tek nakon uspješne odluke
     system_state["last_motion_event"][dus_key] = now
+
+    # FIX: očisti historiju nakon odluke da stari podaci ne utiču na sljedeći event
+    system_state["dus_history"][dus_key] = []
+    print(f"[{dpir_topic}] 🧹 DUS historija očišćena nakon odluke")
 
     if is_entering:
         system_state["people_count"] += 1
-        print(f"[{dpir_topic}] ➡️  Person ENTERING | 👥 {system_state['people_count']}")
+        print(f"[{dpir_topic}] ➡️  ULAZ | 👥 {system_state['people_count']}")
     else:
         system_state["people_count"] = max(0, system_state["people_count"] - 1)
-        print(f"[{dpir_topic}] ⬅️  Person EXITING | 👥 {system_state['people_count']}")
+        print(f"[{dpir_topic}] ⬅️  IZLAZ | 👥 {system_state['people_count']}")
 
     mqtt_client.publish("/entries", json.dumps({"people_count": system_state["people_count"]}))
     save_to_influx({
@@ -635,7 +640,6 @@ def display_dhts():
     }
     mqtt_client.publish("commands/PI3/LCD", json.dumps(payload))
     system_state["current_dht_index"] = (idx + 1) % len(system_state["dht_names_list"])
-    # print("🌡️/🌫️" + str(payload))
     Timer(10, display_dhts).start()
 
 
@@ -658,28 +662,57 @@ def simulate_sensor():
         return jsonify({"status": "success", "message": "Scenarij 1: DPIR1 simuliran — LED će se upaliti na 10s"})
 
     elif scenario == "2a":
+        # FIX: očisti staru DUS historiju prije simulacije da nema lažnih podataka
+        system_state["dus_history"]["DUS1"] = []
+
         mqtt_client.publish("pi1/dus1", json.dumps({
             "measurement": "pi1/dus1", "value": 30.0,
             "simulated": True, "runs_on": "flask", "name": "DUS1"
         }), qos=1)
-        def trigger(): mqtt_client.publish("pi1/dpir1", json.dumps({
-            "measurement": "pi1/dpir1", "value": 1,
-            "simulated": True, "runs_on": "flask", "name": "DPIR1"
-        }), qos=1)
-        Timer(0.5, trigger).start()
-        return jsonify({"status": "success", "message": f"Scenarij 2a: osoba ULAZI | trenutno: {system_state['people_count']} osoba"})
+
+        def trigger():
+            # FIX: debug log da vidimo stanje historije u trenutku okidanja
+            hist = system_state["dus_history"]["DUS1"]
+            cooldown_elapsed = time.time() - system_state["last_motion_event"]["DUS1"]
+            print(f"[2a DEBUG] DUS1 history ({len(hist)} entries): {hist}")
+            print(f"[2a DEBUG] Cooldown elapsed: {cooldown_elapsed:.2f}s (limit: {MOTION_COOLDOWN}s)")
+            mqtt_client.publish("pi1/dpir1", json.dumps({
+                "measurement": "pi1/dpir1", "value": 1,
+                "simulated": True, "runs_on": "flask", "name": "DPIR1"
+            }), qos=1)
+
+        # FIX: delay povećan sa 0.5s → 1.0s da DUS sigurno stigne u historiju
+        Timer(1.0, trigger).start()
+        return jsonify({
+            "status": "success",
+            "message": f"Scenarij 2a: osoba ULAZI | trenutno: {system_state['people_count']} osoba"
+        })
 
     elif scenario == "2b":
+        # FIX: očisti staru DUS historiju prije simulacije
+        system_state["dus_history"]["DUS1"] = []
+
         mqtt_client.publish("pi1/dus1", json.dumps({
             "measurement": "pi1/dus1", "value": 120.0,
             "simulated": True, "runs_on": "flask", "name": "DUS1"
         }), qos=1)
-        def trigger(): mqtt_client.publish("pi1/dpir1", json.dumps({
-            "measurement": "pi1/dpir1", "value": 1,
-            "simulated": True, "runs_on": "flask", "name": "DPIR1"
-        }), qos=1)
-        Timer(0.5, trigger).start()
-        return jsonify({"status": "success", "message": f"Scenarij 2b: osoba IZLAZI | trenutno: {system_state['people_count']} osoba"})
+
+        def trigger():
+            hist = system_state["dus_history"]["DUS1"]
+            cooldown_elapsed = time.time() - system_state["last_motion_event"]["DUS1"]
+            print(f"[2b DEBUG] DUS1 history ({len(hist)} entries): {hist}")
+            print(f"[2b DEBUG] Cooldown elapsed: {cooldown_elapsed:.2f}s (limit: {MOTION_COOLDOWN}s)")
+            mqtt_client.publish("pi1/dpir1", json.dumps({
+                "measurement": "pi1/dpir1", "value": 1,
+                "simulated": True, "runs_on": "flask", "name": "DPIR1"
+            }), qos=1)
+
+        # FIX: delay povećan sa 0.5s → 1.0s
+        Timer(1.0, trigger).start()
+        return jsonify({
+            "status": "success",
+            "message": f"Scenarij 2b: osoba IZLAZI | trenutno: {system_state['people_count']} osoba"
+        })
 
     elif scenario == "3":
         mqtt_client.publish("pi1/ds1", json.dumps({
@@ -702,7 +735,6 @@ def simulate_sensor():
             {"topic": "pi3/dpir3", "name": "DPIR3"}
         ]
 
-        # chosen_sensor = {"topic": "pi2/dpir2", "name": "DPIR2"}
         chosen_sensor = random.choice(dpirs_sensors)
         print(f"Chosen sensor: {chosen_sensor}")
         payload = json.dumps({
@@ -726,7 +758,7 @@ def simulate_sensor():
                 "message": f"Scenarij 5: Pokret na {chosen_sensor['name']} detektovan, ali ima {current_people} osoba. Nema alarma."
             })
 
-    elif scenario == "7":
+    elif scenario == "6":
         magnitude = 2.5
         mqtt_client.publish("pi2/gsg", json.dumps({
             "measurement": "pi2/gsg",
@@ -738,7 +770,7 @@ def simulate_sensor():
         }), qos=1)
         return jsonify({
             "status": "success",
-            "message": f"Scenarij 7: GSG pomeraj detektovan ({magnitude}g) — alarm aktiviran"
+            "message": f"Scenarij 6: GSG pomeraj detektovan ({magnitude}g) — alarm aktiviran"
         })
 
     elif scenario == "9":
@@ -767,7 +799,6 @@ def simulate_sensor():
             "status": "success",
             "message": f"Scenarij 9: Primljena je komanda {color['command']} — boja: {color['value']} "
         })
-
 
     return jsonify({"status": "error", "message": "Nepoznat scenarij"}), 400
 
@@ -849,7 +880,6 @@ def submit_pin():
     })
 
 
-
 @app.route('/rgb/set', methods=['POST'])
 def set_rgb():
     content = request.json
@@ -877,7 +907,6 @@ def set_timer():
         return jsonify({"status": "error", "message": "No seconds provided"}), 400
     try:
         start_timer(int(seconds))
-        # Takodje pošalji MQTT za fizički 4SD (ako se koristi odvojen subscriber)
         mqtt_client.publish("timer/set", json.dumps({"seconds": int(seconds)}), qos=1)
         return jsonify({"status": "success", "message": f"Štoperica postavljena na {seconds}s"})
     except Exception as e:

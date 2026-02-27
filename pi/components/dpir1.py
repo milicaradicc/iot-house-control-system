@@ -66,7 +66,7 @@ def run_motion_sensor(settings, threads, stop_event, code="DPIR"):
         print("Starting DPIR1 simulator")
         t = threading.Thread(
             target=run_motion_sensor_simulator,
-            args=(dpir1_callback, stop_event, publish_event, settings,10)
+            args=(dpir1_callback, stop_event, publish_event, settings,0.5)
         )
         t.start()
         threads.append(t)
